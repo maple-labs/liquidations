@@ -1,0 +1,33 @@
+{
+    "language": "Solidity",
+    "sources": {
+      "contracts/PoolFactory.sol": {
+        "urls": ["contracts/PoolFactory.sol"]
+      }
+    },
+    "settings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "libraries": {
+        "": {
+          "contracts/core/pool/contracts/libraries/PoolLib.sol:PoolLib": "0x2c1C30fb8cC313Ef3cfd2E2bBf2da88AdD902C30",
+          "contracts/libraries/util/contracts/Util.sol:Util": "0x95f9676A34aF2675B63948dDba8F8c798741A52a"
+        }
+      },
+      "outputSelection": {
+        "*": {
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode"
+          ],
+          "": ["ast"]
+        }
+      },
+      "metadata": {
+        "bytecodeHash": "none"
+      }
+    }
+  }

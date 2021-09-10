@@ -1,0 +1,9 @@
+[submodule "modules/ds-test"]
+	path = modules/ds-test
+	url = https://github.com/dapphub/ds-test.git
+[submodule "modules/openzeppelin-contracts"]
+	path = modules/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "modules/proxy-factory"]
+	path = modules/proxy-factory
+	url = https://github.com/maple-labs/proxy-factory.git
