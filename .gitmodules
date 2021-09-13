@@ -7,3 +7,9 @@
 [submodule "modules/proxy-factory"]
 	path = modules/proxy-factory
 	url = https://github.com/maple-labs/proxy-factory.git
+[submodule "modules/loan"]
+	path = modules/loan
+	url = https://github.com/maple-labs/loan.git
+[submodule "modules/util"]
+	path = modules/util
+	url = https://github.com/maple-labs/util.git
