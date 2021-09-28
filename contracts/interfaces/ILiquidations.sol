@@ -45,5 +45,4 @@ interface ILiquidations {
             uint256 amountRecovered
         ); 
 
-
 }
