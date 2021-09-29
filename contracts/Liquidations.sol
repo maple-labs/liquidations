@@ -1,94 +1,111 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { ILoan }  from "../modules/loan/contracts/interfaces/ILoan.sol";
-import { IERC20 } from "../modules/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { Util }   from "../modules/util/contracts/Util.sol";
-import { IMapleGlobals } from "../modules/util/contracts/interfaces/IMapleGlobals.sol";
+import { ILoan }       from "../modules/loan/contracts/interfaces/ILoan.sol";
+import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
+import { IERC20 }      from "../modules/erc20/src/interfaces/IERC20.sol";
 
-import { ILiquidations } from "./interfaces/ILiquidations.sol";
+import { ILiquidations }                         from "./interfaces/ILiquidations.sol";
+import { IUniswapRouterLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
 
 contract Liquidations is ILiquidations {
 
+    using ERC20Helper for address;
+
     address public override globals;
 
-    mapping(bytes32 => MarketPlace) public override markets;
+    // ammPath [ammId][fromAsset][toAsset][facilitatorAsset].
+    mapping(bytes32 => mapping(address => mapping (address => address))) ammPath;
+
+    // Contract address that facilitate the interaction with AMM.
+    mapping(bytes32 => address) public marketRouters;
 
     function initialize(address globals_) public {
         globals = globals_;
     }
 
-    function addMarketPair(bytes32 ammId, address fromAsset_, address toAsset_, address facilitatorAsset_) external {
+    function addMarketPair(bytes32 ammId_, address fromAsset_, address toAsset_, address facilitatorAsset_) external override {
         require(fromAsset_ != address(0) && toAsset_ != address(0), "L:ZERO_ADDRESS");
-        require(markets[ammId].interactor != address(0), "L:MARKET_PLACE_NOT_EXISTS");
-        markets[ammId].ammPath[fromAsset_][toAsset_] = facilitatorAsset_;
-        emit MarketPairAdded(ammId, fromAsset_, toAsset_, facilitatorAsset_); 
+        require(marketRouters[ammId_] != address(0), "L:MARKET_PLACE_NOT_EXISTS");
+        ammPath[ammId_][fromAsset_][toAsset_] = facilitatorAsset_;
+        emit MarketPairAdded(ammId_, fromAsset_, toAsset_, facilitatorAsset_); 
     } 
 
-    function addMarketPlace(bytes32 ammId_, address router_) external {
+    function addMarketPlace(bytes32 ammId_, address router_) external override {
         require(router_ != address(0), "L:ZERO_ADDRESS");
-        require(markets[ammId_].interactor == address(0), "L:MARKET_PLACE_ALREADY_EXISTS");
-        markets[ammId_] = MarketPlace { ammId: ammId_, interactor: router_};
+        require(marketRouters[ammId_] == address(0), "L:MARKET_PLACE_ALREADY_EXISTS");
+        marketRouters[ammId_] = router_;
         emit NewMarketAdded(ammId_, router_);
     }
 
+    function _calcMinAmount(IMapleGlobalsLike globals_, address fromAsset_, address toAsset_, uint256 swapAmt_) internal view returns (uint256) {
+        return
+            swapAmt
+                 * globals_.getLatestPrice(fromAsset_)               // Convert from `fromAsset` value.
+                 * 10 ** IERC20DetailsLike(toAsset_).decimals()     // Convert to `toAsset` decimal precision.
+                 / globals_.getLatestPrice(toAsset_)                 // Convert to `toAsset` value.
+                 / 10 ** IERC20DetailsLike(fromAsset_).decimals();  // Convert from `fromAsset` decimal precision.
+    }
+
     function triggerDefault(
-        address collateralAsset,
-        address liquidityAsset,
-        address loan
+        address collateralAsset_,
+        address liquidityAsset_,
+        address loan_
     ) 
         external
+        override
         returns (
             uint256 amountLiquidated,
             uint256 amountRecovered
         ) 
     {
-        return triggerDefaultWithAmmId(collateralAsset, liquidityAsset, loan, bytes32("Uniswap-v2"));
+        return triggerDefaultWithAmmId(collateralAsset_, liquidityAsset_, loan_, bytes32("Uniswap-v2"));
     }
 
     function triggerDefaultWithAmmId(
-        address collateralAsset,
-        address liquidityAsset,
-        address loan,
-        bytes32 ammId
+        address collateralAsset_,
+        address liquidityAsset_,
+        address loan_,
+        bytes32 ammId_
     )
         public
+        override
         returns (
-            uint256 amountLiquidated,
-            uint256 amountRecovered
+            uint256 amountLiquidated_,
+            uint256 amountRecovered_
         )
     {
         // Get the liquidation amount from loan.
-        uint256 liquidationAmt = ILoan(loan).collateral();
+        uint256 liquidationAmt = ILoan(loan_).collateral();
 
         // Transfer collateral amount from loan.
-        IERC20(collateralAsset).transferFrom(loan, address(this), liquidationAmt);
+        IERC20(collateralAsset_).transferFrom(loan_, address(this), liquidationAmt);
         
-        if (address(collateralAsset) == liquidityAsset || liquidationAmt == uint256(0)) return (liquidationAmt, liquidationAmt);
+        if (collateralAsset_ == liquidityAsset_ || liquidationAmt == uint256(0)) return (liquidationAmt, liquidationAmt);
 
-        address router = markets[ammId].interactor;
+        address router = marketRouters[ammId_];
 
-        collateralAsset.safeApprove(router, uint256(0));
-        collateralAsset.safeApprove(router, liquidationAmt);
+        IERC20(collateralAsset_).safeApprove(router, uint256(0));
+        IERC20(collateralAsset_).safeApprove(router, liquidationAmt);
 
         // Get minimum amount of loan asset get after swapping collateral asset.
-        uint256 minAmount = Util.calcMinAmount(IMapleGlobals(address(globals)) , collateralAsset, liquidityAsset, liquidationAmt);
+        uint256 minAmount = Util.calcMinAmount(IMapleGlobalsLike(globals), collateralAsset_, liquidityAsset_, liquidationAmt);
 
         // Generate Uniswap path.
-        address uniswapAssetForPath = markets[ammId].ammPath[collateralAsset][liquidityAsset];
-        bool middleAsset = uniswapAssetForPath != liquidityAsset && uniswapAssetForPath != address(0);
+        address uniswapAssetForPath = ammPath[ammId_][collateralAsset_][liquidityAsset_];
+        bool middleAsset = uniswapAssetForPath != liquidityAsset_ && uniswapAssetForPath != address(0);
 
         address[] memory path = new address[](middleAsset ? 3 : 2);
 
-        path[0] = address(collateralAsset);
-        path[1] = middleAsset ? uniswapAssetForPath : liquidityAsset;
+        path[0] = address(collateralAsset_);
+        path[1] = middleAsset ? uniswapAssetForPath : liquidityAsset_;
 
-        if (middleAsset) path[2] = liquidityAsset;
+        if (middleAsset) path[2] = liquidityAsset_;
 
         // Swap collateralAsset for Liquidity Asset.
-        uint256[] memory returnAmounts = IUniswapRouterLike(UNISWAP_ROUTER).swapExactTokensForTokens(
+        uint256[] memory returnAmounts = IUniswapRouterLike(marketRouters[ammId_]).swapExactTokensForTokens(
             liquidationAmt,
-            minAmount.sub(minAmount.mul(globals.maxSwapSlippage()).div(10_000)),
+            minAmount - (minAmount * IMapleGlobalsLike(globals).maxSwapSlippage()) / 10_000,
             path,
             address(this),
             block.timestamp

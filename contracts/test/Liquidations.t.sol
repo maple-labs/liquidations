@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.7;
 
-import { TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }    from "../../modules/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
+import { IERC20 }                        from "../../modules/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import { IOracle } from "../interfaces/Interfaces.sol";
 
@@ -12,18 +12,17 @@ contract MapleGlobalsLike {
 
     mapping (address => address) public oracleFor;
 
-    function maxSwapSlippage() external view returns(uint256) {
+    function maxSwapSlippage() external pure returns(uint256) {
         return 1000;
     }
 
     function getLatestPrice(address asset) external view returns (uint256) {
-        (uint80 roundID, int256 price,,uint256 timeStamp, uint80 answeredInRound) = IOracle(oracleFor[asset]).latestRoundData();
+        (, int256 price,,,) = IOracle(oracleFor[asset]).latestRoundData();
         return uint256(price);
     }
 
     function setPriceOracle(address asset, address oracle) external {
         oracleFor[asset] = oracle;
-        emit OracleSet(asset, oracle);
     }
 
 }
@@ -42,10 +41,10 @@ contract Loan {
     
 }
 
-contract LiquidationsUniswapTest is TestUtils {
+contract LiquidationsUniswapTest is TestUtils, StateManipulations {
 
-    address public constant WETH              = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2;
-    address public constant USDC              = 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48;
+    address public constant WETH              = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant USDC              = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address public constant SUSHISWAP_ROUTER  = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
     address public constant WETH_ORACLE       = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
@@ -60,7 +59,7 @@ contract LiquidationsUniswapTest is TestUtils {
 
         mapleGlobals.setPriceOracle(WETH, WETH_ORACLE);
         mapleGlobals.setPriceOracle(USDC, USDC_ORACLE);
-        liquidations.initialize(address(mapleGlobals));
+        //liquidations.initialize(address(mapleGlobals));
 
         // Add market place & pair.
         liquidations.addMarketPlace(bytes32("Uniswap-v2"), UNISWAP_ROUTER_V2);
@@ -71,13 +70,18 @@ contract LiquidationsUniswapTest is TestUtils {
     }
 
     function _mintCollateral(address to_, uint256 amount_) internal {
-
+        erc20_mint(WETH, 3, to_, amount_);
     } 
 
-    function test_triggerDefault_withUniswap() external {
+    function test_triggerDefault_withUniswap(uint256 collateralAmount_) external {
+        collateralAmount_ = constrictToRange(collateralAmount_, 1 ether, 500 ether);
         // Create a loan
-        Loan loan = new Loan(100 ether);
+        Loan loan = new Loan(collateralAmount_);
+        _mintCollateral(address(loan), collateralAmount_);
+        loan.approveCollateral(address(liquidations), WETH);
 
+        (uint256 amountLiquidated, uint256 amountRecovered) = liquidations.triggerDefault(WETH, USDC, address(loan));
+        assertEq(amountLiquidated, collateralAmount_);
     }
 
 }

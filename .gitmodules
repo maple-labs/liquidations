@@ -7,9 +7,9 @@
 [submodule "modules/loan"]
 	path = modules/loan
 	url = https://github.com/maple-labs/loan.git
-[submodule "modules/util"]
-	path = modules/util
-	url = https://github.com/maple-labs/util.git
 [submodule "modules/contract-test-utils"]
 	path = modules/contract-test-utils
 	url = https://github.com/maple-labs/contract-test-utils.git
+[submodule "modules/erc20-helper"]
+	path = modules/erc20-helper
+	url = https://github.com/maple-labs/erc20-helper.git

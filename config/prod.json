@@ -1,8 +1,8 @@
 {
     "language": "Solidity",
     "sources": {
-      "contracts/PoolFactory.sol": {
-        "urls": ["contracts/PoolFactory.sol"]
+      "contracts/Liquidations.sol": {
+        "urls": ["contracts/Liquidations.sol"]
       }
     },
     "settings": {

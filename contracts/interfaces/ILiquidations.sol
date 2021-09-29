@@ -3,16 +3,6 @@ pragma solidity 0.8.7;
 
 interface ILiquidations {
 
-    // Support multiple AMMs for liquidation.
-    struct MarketPlace {
-        // Unique AMM identifier.
-        bytes32 ammId;
-        // Contract address that facilitate the interaction with AMM.
-        address interactor;
-        // ammPath [fromAsset][toAsset][facilitatorAsset].
-        mapping(address => mapping (address => address)) ammPath;
-    }
-
     event MarketPairAdded(bytes32 ammId, address fromAsset, address toAsset, address facilitatorAsset);
     event NewMarketAdded (bytes32 ammId, address router);
 
