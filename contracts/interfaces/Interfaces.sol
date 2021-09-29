@@ -47,6 +47,6 @@ interface IMapleGlobalsLike {
 
     function maxSwapSlippage() external view returns(uint256);
 
-    function getLatestPrice() external view returns(uint256);
+    function getLatestPrice(address asset) external view returns(uint256);
 
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.7;
 
 import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }                        from "../../modules/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC20 }                        from "../../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 
 import { IOracle } from "../interfaces/Interfaces.sol";
 
@@ -59,7 +59,7 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
 
         mapleGlobals.setPriceOracle(WETH, WETH_ORACLE);
         mapleGlobals.setPriceOracle(USDC, USDC_ORACLE);
-        //liquidations.initialize(address(mapleGlobals));
+        liquidations.initialize(address(mapleGlobals));
 
         // Add market place & pair.
         liquidations.addMarketPlace(bytes32("Uniswap-v2"), UNISWAP_ROUTER_V2);
@@ -69,11 +69,11 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
         liquidations.addMarketPair(bytes32("Sushiswap"),  WETH, USDC, address(0));
     }
 
-    function _mintCollateral(address to_, uint256 amount_) internal {
+    function _mintCollateral(address to_, uint256 amount_) internal view {
         erc20_mint(WETH, 3, to_, amount_);
     } 
 
-    function test_triggerDefault_withUniswap(uint256 collateralAmount_) external {
+    function test_triggerDefault_withUniswapV2(uint256 collateralAmount_) external {
         collateralAmount_ = constrictToRange(collateralAmount_, 1 ether, 500 ether);
         // Create a loan
         Loan loan = new Loan(collateralAmount_);

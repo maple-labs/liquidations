@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 
 import { ILoan }       from "../modules/loan/contracts/interfaces/ILoan.sol";
 import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
-import { IERC20 }      from "../modules/erc20/src/interfaces/IERC20.sol";
+import { IERC20 }      from "../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 
 import { ILiquidations }                         from "./interfaces/ILiquidations.sol";
 import { IUniswapRouterLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
@@ -40,11 +40,11 @@ contract Liquidations is ILiquidations {
 
     function _calcMinAmount(IMapleGlobalsLike globals_, address fromAsset_, address toAsset_, uint256 swapAmt_) internal view returns (uint256) {
         return
-            swapAmt
-                 * globals_.getLatestPrice(fromAsset_)               // Convert from `fromAsset` value.
-                 * 10 ** IERC20DetailsLike(toAsset_).decimals()     // Convert to `toAsset` decimal precision.
-                 / globals_.getLatestPrice(toAsset_)                 // Convert to `toAsset` value.
-                 / 10 ** IERC20DetailsLike(fromAsset_).decimals();  // Convert from `fromAsset` decimal precision.
+            swapAmt_
+                 * globals_.getLatestPrice(fromAsset_)   // Convert from `fromAsset` value.
+                 * 10 ** IERC20(toAsset_).decimals()     // Convert to `toAsset` decimal precision.
+                 / globals_.getLatestPrice(toAsset_)     // Convert to `toAsset` value.
+                 / 10 ** IERC20(fromAsset_).decimals();  // Convert from `fromAsset` decimal precision.
     }
 
     function triggerDefault(
@@ -85,11 +85,11 @@ contract Liquidations is ILiquidations {
 
         address router = marketRouters[ammId_];
 
-        IERC20(collateralAsset_).safeApprove(router, uint256(0));
-        IERC20(collateralAsset_).safeApprove(router, liquidationAmt);
+        collateralAsset_.approve(router, uint256(0));
+        collateralAsset_.approve(router, liquidationAmt);
 
         // Get minimum amount of loan asset get after swapping collateral asset.
-        uint256 minAmount = Util.calcMinAmount(IMapleGlobalsLike(globals), collateralAsset_, liquidityAsset_, liquidationAmt);
+        uint256 minAmount = _calcMinAmount(IMapleGlobalsLike(globals), collateralAsset_, liquidityAsset_, liquidationAmt);
 
         // Generate Uniswap path.
         address uniswapAssetForPath = ammPath[ammId_][collateralAsset_][liquidityAsset_];
