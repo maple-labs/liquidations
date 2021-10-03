@@ -1,8 +1,17 @@
 {
     "language": "Solidity",
     "sources": {
-      "contracts/Liquidations.sol": {
+       "contracts/Liquidations.sol": {
         "urls": ["contracts/Liquidations.sol"]
+      },
+      "contracts/LiquidationsStateReader.sol": {
+        "urls": ["contracts/LiquidationsStateReader.sol"]
+      },
+      "contracts/MarketState.sol": {
+        "urls": ["contracts/MarketState.sol"]
+      },
+      "contracts/UniswapV2Strategy.sol": {
+        "urls": ["contracts/UniswapV2Strategy.sol"]
       },
       "contracts/test/Liquidations.t.sol": {
         "urls": ["contracts/test/Liquidations.t.sol"]

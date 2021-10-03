@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.7;
 
+import { MarketStateOwner } from "./accounts/MarketStateOwner.sol";
+
+import { IOracle }   from "../interfaces/Interfaces.sol";
+import { IStrategy } from "../interfaces/IStrategy.sol";
+
 import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
 import { IERC20 }                        from "../../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 
-import { IOracle } from "../interfaces/Interfaces.sol";
-
-import { Liquidations } from "../Liquidations.sol";
+import { Liquidations }      from "../Liquidations.sol";
+import { MarketState }       from "../MarketState.sol";
+import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
 
 contract MapleGlobalsLike {
 
@@ -50,23 +55,30 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
     address public constant WETH_ORACLE       = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
     address public constant USDC_ORACLE       = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
 
-    MapleGlobalsLike mapleGlobals;
-    Liquidations     liquidations;
+    MapleGlobalsLike  mapleGlobals;
+    Liquidations      liquidations;
+    MarketStateOwner  marketStateOwner;
+    MarketState       marketState;
+    UniswapV2Strategy uniswapV2Strategy;
 
     function setUp() external {
-        mapleGlobals = new MapleGlobalsLike();
-        liquidations = new Liquidations();
+        mapleGlobals      = new MapleGlobalsLike();
+        marketStateOwner  = new MarketStateOwner();
+        marketState       = new MarketState(address(mapleGlobals), address(marketStateOwner));
+        liquidations      = new Liquidations(address(marketState));
+        uniswapV2Strategy = new UniswapV2Strategy();
 
         mapleGlobals.setPriceOracle(WETH, WETH_ORACLE);
         mapleGlobals.setPriceOracle(USDC, USDC_ORACLE);
-        liquidations.initialize(address(mapleGlobals));
 
         // Add market place & pair.
-        liquidations.addMarketPlace(bytes32("Uniswap-v2"), UNISWAP_ROUTER_V2);
-        liquidations.addMarketPlace(bytes32("Sushiswap"),  SUSHISWAP_ROUTER);
+        marketState.addMarketPlace(bytes32("UniswapV2"), UNISWAP_ROUTER_V2);
+        marketState.addMarketPlace(bytes32("Sushiswap"), SUSHISWAP_ROUTER);
 
-        liquidations.addMarketPair(bytes32("Uniswap-v2"), WETH, USDC, address(0));
-        liquidations.addMarketPair(bytes32("Sushiswap"),  WETH, USDC, address(0));
+        marketState.addMarketPair(bytes32("UniswapV2"), WETH, USDC, address(0));
+        marketState.addMarketPair(bytes32("Sushiswap"), WETH, USDC, address(0));
+
+        marketState.addStrategy(bytes32("UniswapV2"), address(uniswapV2Strategy));
     }
 
     function _mintCollateral(address to_, uint256 amount_) internal view {
@@ -80,7 +92,7 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
         _mintCollateral(address(loan), collateralAmount_);
         loan.approveCollateral(address(liquidations), WETH);
 
-        (uint256 amountLiquidated, uint256 amountRecovered) = liquidations.triggerDefault(WETH, USDC, address(loan));
+        (uint256 amountLiquidated, uint256 amountRecovered) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_, WETH, USDC);
         assertEq(amountLiquidated, collateralAmount_);
     }
 

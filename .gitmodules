@@ -13,3 +13,6 @@
 [submodule "modules/erc20-helper"]
 	path = modules/erc20-helper
 	url = https://github.com/maple-labs/erc20-helper.git
+[submodule "modules/oz-contracts"]
+	path = modules/oz-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
