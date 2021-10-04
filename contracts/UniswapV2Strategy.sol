@@ -6,7 +6,6 @@ import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 import { IERC20 }      from "../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 
 import { ILender }            from "./interfaces/ILender.sol";
-import { IStrategy }          from "./interfaces/IStrategy.sol";
 import { IUniswapRouterLike } from "./interfaces/Interfaces.sol";
 
 contract UniswapV2Strategy {
@@ -31,10 +30,10 @@ contract UniswapV2Strategy {
     function flashBorrowLiquidation(
         address lender_, 
         uint256 swapAmount_,
-        uint256 minReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
-        address fundsAsset_
+        address fundsAsset_,
+        address profitDestination_
     ) 
         public 
     {
@@ -52,21 +51,23 @@ contract UniswapV2Strategy {
             abi.encodeWithSelector(
                 this.swap.selector, 
                 swapAmount_, 
-                minReturnAmount_, 
+                repaymentAmount, 
                 collateralAsset_, 
                 middleAsset_, 
-                fundsAsset_
+                fundsAsset_,
+                profitDestination_
             )
         );
     }
 
-    /// @dev Assumption - Before calling this function liquidator would transfer all the collateral to Liquidations (i.e proxy) contract.
+    /// @dev Assumption - Before calling this function liquidator would transfer all the collateral to Liquidator (i.e proxy) contract.
     function swap(
         uint256 swapAmount_,
         uint256 minReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
-        address fundsAsset_
+        address fundsAsset_,
+        address profitDestination_
     )
         external
     {
@@ -88,13 +89,15 @@ contract UniswapV2Strategy {
         if (hasMiddleAsset) path[2] = fundsAsset_;
 
         // Swap collateralAsset for Liquidity Asset.
-        uint256[] memory returnAmounts = IUniswapRouterLike(UNISWAP_ROUTER_V2).swapExactTokensForTokens(
+        IUniswapRouterLike(UNISWAP_ROUTER_V2).swapExactTokensForTokens(
             swapAmount_,
             minReturnAmount_,
             path,
             address(this),
             block.timestamp
         );
+
+        IERC20(fundsAsset_).transfer(profitDestination_, IERC20(fundsAsset_).balanceOf(address(this)) - minReturnAmount_);  // TODO: ERC20Helper
     }
 
 }

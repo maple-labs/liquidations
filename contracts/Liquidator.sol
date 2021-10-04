@@ -5,8 +5,6 @@ import { ERC20Helper, IERC20 } from "../modules/erc20-helper/src/ERC20Helper.sol
 
 import { ILender }               from "./interfaces/ILender.sol";
 import { IERC3156FlashBorrower } from "./interfaces/IERC3156FlashBorrower.sol";
-import { IMarketState }          from "./interfaces/IMarketState.sol";
-import { IStrategy }             from "./interfaces/IStrategy.sol";
 
 interface IMapleGlobalsLike {
 
@@ -16,7 +14,7 @@ interface IMapleGlobalsLike {
 
 }
 
-contract Liquidations {
+contract Liquidator {
 
     bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.MapleFinance.onFlashLoan");
 
@@ -39,12 +37,14 @@ contract Liquidations {
         _;
     }
 
+    // TODO: Allow for setAllowedSlippage function
+
     function getReturnAmount(uint256 swapAmount_) public view returns (uint256 returnAmount_) {
         return
             swapAmount_
                 * IMapleGlobalsLike(globals).getLatestPrice(collateralAsset)  // Convert from `fromAsset` value.
                 * 10 ** IERC20(fundsAsset).decimals()                         // Convert to `toAsset` decimal precision.
-                * allowedSlippage                                             // Multiply by allowed slippage basis points
+                * (10_000 - allowedSlippage)                                  // Multiply by allowed slippage basis points
                 / IMapleGlobalsLike(globals).getLatestPrice(fundsAsset)       // Convert to `toAsset` value.
                 / 10 ** IERC20(collateralAsset).decimals()                    // Convert from `fromAsset` decimal precision.
                 / 10_000;                                                     // Divide basis points for slippage

@@ -1,11 +1,11 @@
 {
     "language": "Solidity",
     "sources": {
-       "contracts/Liquidations.sol": {
-        "urls": ["contracts/Liquidations.sol"]
+       "contracts/Liquidator.sol": {
+        "urls": ["contracts/Liquidator.sol"]
       },
-      "contracts/LiquidationsStateReader.sol": {
-        "urls": ["contracts/LiquidationsStateReader.sol"]
+      "contracts/LiquidatorStateReader.sol": {
+        "urls": ["contracts/LiquidatorStateReader.sol"]
       },
       "contracts/MarketState.sol": {
         "urls": ["contracts/MarketState.sol"]

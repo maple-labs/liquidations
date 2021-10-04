@@ -26,20 +26,13 @@ interface IUniswapRouterLike {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapETHForExactTokens(
+    function swapTokensForExactTokens(
         uint256 amountOut,
+        uint256 amountInMax,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable returns (uint256[] memory amounts);
-
-    function quote(
-        uint256 amountA,
-        uint256 reserveA,
-        uint256 reserveB
-    ) external pure returns (uint256 amountB);
-
-    function WETH() external pure returns (address);
+    ) external returns (uint[] memory amounts);
 
 }
 
