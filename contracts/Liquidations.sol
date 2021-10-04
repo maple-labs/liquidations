@@ -19,9 +19,9 @@ contract Liquidations is Proxy, LiquidationsStateReader {
         return IMarketState(getMarketStateAddress()).getStrategy(bytes32("UniswapV2"));
     }
 
-    function _getStrategyImplementation() internal virtual returns (address strategy_) {
-        require(_getSig(msg.data) == IStrategy.triggerDefaultWithAmmId.selector, "LP:INVALID_METHOD_CALL");
-        (bytes32 ammId_,,,,) = abi.decode(msg.data, (bytes32, uint256, address, address, address));
+    function _getStrategyImplementation() internal view returns (address strategy_) {
+        (bytes4 sig_, bytes32 ammId_,,,,) = _abiDecodeTriggerDefaultWithAmmId(msg.data);
+        require(sig_ == IStrategy.triggerDefaultWithAmmId.selector, "LP:INVALID_METHOD_CALL");
         strategy_ = IMarketState(getMarketStateAddress()).getStrategy(ammId_);
         require(strategy_ != address(0), "LP:INVALID_STRATEGY");
     }
@@ -30,12 +30,28 @@ contract Liquidations is Proxy, LiquidationsStateReader {
         _delegate(_getStrategyImplementation());
     }
 
-    function _getSig(bytes memory data_) internal pure returns(bytes4 sig_) {
-        uint len = data_.length < 4 ? data_.length : 4;
-        for (uint256 i = 0; i < len; i++) {
-          sig_ |= bytes4(data_[i] & 0xFF) >> (i * 8);
+    function _abiDecodeTriggerDefaultWithAmmId(
+        bytes memory _data
+    ) 
+        internal 
+        pure 
+        returns(
+            bytes4 sig,
+            bytes32 ammId_,
+            address loan_,
+            uint256 amount_,
+            address collateralAsset_,
+            bytes32 liquidityAsset_
+        )
+    {
+        assembly {
+            sig := mload(add(_data, add(0x20, 0)))
+            ammId_ := mload(add(_data, 36))
+            loan_ := mload(add(_data, 68))
+            amount_ := mload(add(_data, 100))
+            collateralAsset_ := mload(add(_data, 132))
+            liquidityAsset_ := mload(add(_data, 164))
         }
-        return sig_;
     }
     
 }

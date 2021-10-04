@@ -40,8 +40,8 @@ contract Loan {
         collateral = collateral_;
     }
 
-    function approveCollateral(address spender_, address collateralAsset_) external {
-        IERC20(collateralAsset_).approve(spender_, collateral);
+    function transferCollateral(address to_, address collateralAsset_) external {
+        IERC20(collateralAsset_).transfer(to_, collateral);
     }
     
 }
@@ -72,13 +72,13 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
         mapleGlobals.setPriceOracle(USDC, USDC_ORACLE);
 
         // Add market place & pair.
-        marketState.addMarketPlace(bytes32("UniswapV2"), UNISWAP_ROUTER_V2);
-        marketState.addMarketPlace(bytes32("Sushiswap"), SUSHISWAP_ROUTER);
+        marketStateOwner.marketState_addMarketPlace(address(marketState), bytes32("UniswapV2"), UNISWAP_ROUTER_V2);
+        marketStateOwner.marketState_addMarketPlace(address(marketState), bytes32("Sushiswap"), SUSHISWAP_ROUTER);
 
-        marketState.addMarketPair(bytes32("UniswapV2"), WETH, USDC, address(0));
-        marketState.addMarketPair(bytes32("Sushiswap"), WETH, USDC, address(0));
+        marketStateOwner.marketState_addMarketPair(address(marketState), bytes32("UniswapV2"), WETH, USDC, address(0));
+        marketStateOwner.marketState_addMarketPair(address(marketState), bytes32("Sushiswap"), WETH, USDC, address(0));
 
-        marketState.addStrategy(bytes32("UniswapV2"), address(uniswapV2Strategy));
+        marketStateOwner.marketState_addStrategy(address(marketState), bytes32("UniswapV2"), address(uniswapV2Strategy));
     }
 
     function _mintCollateral(address to_, uint256 amount_) internal view {
@@ -87,13 +87,14 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
 
     function test_triggerDefault_withUniswapV2(uint256 collateralAmount_) external {
         collateralAmount_ = constrictToRange(collateralAmount_, 1 ether, 500 ether);
+        collateralAmount_ = 10 ether;
         // Create a loan
         Loan loan = new Loan(collateralAmount_);
         _mintCollateral(address(loan), collateralAmount_);
-        loan.approveCollateral(address(liquidations), WETH);
-
-        (uint256 amountLiquidated, uint256 amountRecovered) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_, WETH, USDC);
-        assertEq(amountLiquidated, collateralAmount_);
+        loan.transferCollateral(address(liquidations), WETH);
+        
+        (uint256 amountLiquidated,) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_, WETH, USDC);
+        assertEq(amountLiquidated, collateralAmount_, "Incorrect amount get liquidated");
     }
 
 }
