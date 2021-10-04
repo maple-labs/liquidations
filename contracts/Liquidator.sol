@@ -10,9 +10,6 @@ interface IAuctioneer {
 }
 
 contract Liquidator {
-
-    event LiquidatorCreated(uint256 collateralAmount_, address );
-
     address public collateralAsset;
     address public destination;
     address public auctioneer;
