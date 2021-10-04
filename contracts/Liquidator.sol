@@ -16,25 +16,35 @@ interface IMapleGlobalsLike {
 
 contract Liquidator {
 
-    bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.MapleFinance.onFlashLoan");
-
     address public owner;
     address public collateralAsset;
+    address public destination;
     address public fundsAsset;
     address public globals;
     uint256 public allowedSlippage;
+    uint256 public minRatio;
 
-    constructor(address globals_, address collateralAsset_, address fundsAsset_, uint256 allowedSlippage_) {
+    constructor(address globals_, address collateralAsset_, address fundsAsset_, uint256 allowedSlippage_, uint256 minRatio_, address destination_) {
         owner           = msg.sender;
         globals         = globals_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
         allowedSlippage = allowedSlippage_;
+        destination     = destination_;
+        minRatio        = minRatio_;
     }
 
     modifier onlyOwner() {
         require(msg.sender == owner, "L:INVALID_ADMIN");
         _;
+    }
+
+    function setNewMinRation(uint256 minRatio_) external onlyOwner {
+        minRatio = minRatio_;
+    }
+
+    function setAllowedSlippage_(uint256 allowedSlippage_) external onlyOwner {
+        allowedSlippage = allowedSlippage_;
     }
 
     // TODO: Allow for setAllowedSlippage function
@@ -50,39 +60,19 @@ contract Liquidator {
                 / 10_000;                                                     // Divide basis points for slippage
     }
 
-    function flashLoanLiquidation(
-        address liquidationStrategy_, 
-        uint256 swapAmount_, 
-        bytes calldata data_,
-        bytes calldata encodedArguments_
-    ) 
-        external returns (bool) 
-    {
-        uint256 returnAmount = getReturnAmount(swapAmount_);
+    function liquidatePortion(address liquidator_, uint256 swapAmount_, bytes calldata data_) external {
+        ERC20Helper.transfer(collateralAsset, liquidator_, swapAmount_);
 
-        // Transfer collateral to liquidation strategy
-        require(
-            IERC20(collateralAsset).transfer(liquidationStrategy_, swapAmount_),
-            "FLASH_LEND:TRANSFER"
-        );
+        liquidator_.call(data_);
 
-        // Perform flashloan callback
-        require(
-            IERC3156FlashBorrower(liquidationStrategy_).onFlashLoan(msg.sender, data_) == CALLBACK_SUCCESS, 
-            "FLASH_LEND:CALLBACK"
-        );
+        uint256 amount1 = getReturnAmount(swapAmount_);
+        uint256 amount2 = (swapAmount_ * minRatio) / 10_000;
 
-        // Perform custom swap function, passing in custom arguments
-        ( bool success, ) = liquidationStrategy_.call(encodedArguments_);
-        require(success, "FLASH_LEND:SWAP_CALL");
+        require(ERC20Helper.transferFrom(fundsAsset, liquidator_, address(this), amount1 > amount2 ? amount1 : amount2));
 
-        // Recover expected funds from liquidation strategy
-        require(
-            IERC20(fundsAsset).transferFrom(liquidationStrategy_, address(this), returnAmount),
-            "FLASH_LEND:REPAY"
-        );
-        
-        return true;
+        if (IERC20(collateralAsset).balanceOf(address(this)) != uint256(0)) return;
+
+        require(ERC20Helper.transfer(fundsAsset, destination, IERC20(fundsAsset).balanceOf(address(this))));
     }
-    
+
 }
