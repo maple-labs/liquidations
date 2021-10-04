@@ -37,12 +37,12 @@ contract Liquidator {
         destination = destination_;
     }
 
-    function liquidatePortion(address liquidator_, uint256 swapAmount_, bytes calldata data_) external {
-        ERC20Helper.transfer(collateralAsset, liquidator_, swapAmount_);
+    function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external {
+        ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_);
 
-        liquidator_.call(data_);
+        msg.sender.call(data_);
 
-        require(ERC20Helper.transferFrom(fundsAsset, liquidator_, destination, IAuctioneer(auctioneer).getExpectedAmount(swapAmount_)));
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, IAuctioneer(auctioneer).getExpectedAmount(swapAmount_)));
     }
 
 }
