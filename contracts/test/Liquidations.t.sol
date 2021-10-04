@@ -2,6 +2,7 @@
 pragma solidity ^0.8.7;
 
 import { MarketStateOwner } from "./accounts/MarketStateOwner.sol";
+import { ProxyAdmin }       from "./accounts/ProxyAdmin.sol";
 
 import { IOracle }   from "../interfaces/Interfaces.sol";
 import { IStrategy } from "../interfaces/IStrategy.sol";
@@ -60,12 +61,14 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
     MarketStateOwner  marketStateOwner;
     MarketState       marketState;
     UniswapV2Strategy uniswapV2Strategy;
+    ProxyAdmin        proxyAdmin;
 
     function setUp() external {
         mapleGlobals      = new MapleGlobalsLike();
         marketStateOwner  = new MarketStateOwner();
+        proxyAdmin        = new ProxyAdmin();
         marketState       = new MarketState(address(mapleGlobals), address(marketStateOwner));
-        liquidations      = new Liquidations(address(marketState));
+        liquidations      = new Liquidations(address(marketState), address(proxyAdmin));
         uniswapV2Strategy = new UniswapV2Strategy();
 
         mapleGlobals.setPriceOracle(WETH, WETH_ORACLE);
@@ -87,7 +90,6 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
 
     function test_triggerDefault_withUniswapV2(uint256 collateralAmount_) external {
         collateralAmount_ = constrictToRange(collateralAmount_, 1 ether, 500 ether);
-        collateralAmount_ = 10 ether;
         // Create a loan
         Loan loan = new Loan(collateralAmount_);
         _mintCollateral(address(loan), collateralAmount_);
@@ -95,6 +97,29 @@ contract LiquidationsUniswapTest is TestUtils, StateManipulations {
         
         (uint256 amountLiquidated,) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_, WETH, USDC);
         assertEq(amountLiquidated, collateralAmount_, "Incorrect amount get liquidated");
+    }
+
+    function test_triggerDefaultWithAmmId_inMultipleTranches(uint256 collateralAmount_) external {
+        collateralAmount_ = constrictToRange(collateralAmount_, 1 ether, 500 ether);
+        // Create a loan
+        Loan loan = new Loan(collateralAmount_);
+        _mintCollateral(address(loan), collateralAmount_);
+        loan.transferCollateral(address(liquidations), WETH);
+
+        // Liquidations 1 -- liquidate 1/3 
+        (uint256 amountLiquidated,) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_ / 3, WETH, USDC);
+        assertEq(amountLiquidated, collateralAmount_ / 3, "Incorrect amount get liquidated");
+
+        // Liquidations 2 -- liquidate 2/3 
+        (amountLiquidated,) = IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), 2 * collateralAmount_ / 3, WETH, USDC);
+        assertEq(amountLiquidated, 2 * collateralAmount_ / 3, "Incorrect amount get liquidated");
+
+        // Liquidations 2 -- liquidate 2/3 
+        try IStrategy(address(liquidations)).triggerDefaultWithAmmId(bytes32("UniswapV2"), address(loan), collateralAmount_ / 3, WETH, USDC) {
+            revert("Should not liquidate");
+        } catch Error(string memory error_) {
+            assertEq(error_, "UniswapV2Strategy:INSUFFICIENT_COLLATERAL", "Incorrect revert string");
+        }
     }
 
 }

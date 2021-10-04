@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { Proxy } from "../modules/oz-contracts/contracts/proxy/Proxy.sol";
+import { Proxy }               from "../modules/oz-contracts/contracts/proxy/Proxy.sol";
+import { ERC20Helper, IERC20 } from "../modules/erc20-helper/src/ERC20Helper.sol";
 
 import { LiquidationsStateReader } from "./LiquidationsStateReader.sol";
 
@@ -10,9 +11,20 @@ import { IStrategy }     from "./interfaces/IStrategy.sol";
 
 contract Liquidations is Proxy, LiquidationsStateReader {
 
-    constructor(address marketState_) {
-        require(marketState_ != address(0), "LP:ZERO_ADDRESS");
+    constructor(address marketState_, address proxyAdmin_) {
+        require(marketState_ != address(0) && proxyAdmin_ != address(0), "L:ZERO_ADDRESS");
         _setSlotValue(MARKET_STATE_SLOT, bytes32(uint256(uint160(marketState_))));
+        _setSlotValue(PROXY_ADMIN_STATE_SLOT, bytes32(uint256(uint160(proxyAdmin_))));
+    }
+
+    modifier onlyProxyAdmin() {
+        require(msg.sender == getProxyAdminAddress(), "L:INVALID_PROXY_AMIN");
+        _;
+    }
+
+    ///@dev Allowed proxy admin to skimmed the funds from the proxy.
+    function skim(address asset_) external onlyProxyAdmin {
+        ERC20Helper.transfer(asset_, getProxyAdminAddress(), IERC20(asset_).balanceOf(address(this)));
     }
 
     function _implementation() internal view override returns (address) {
@@ -21,9 +33,9 @@ contract Liquidations is Proxy, LiquidationsStateReader {
 
     function _getStrategyImplementation() internal view returns (address strategy_) {
         (bytes4 sig_, bytes32 ammId_,,,,) = _abiDecodeTriggerDefaultWithAmmId(msg.data);
-        require(sig_ == IStrategy.triggerDefaultWithAmmId.selector, "LP:INVALID_METHOD_CALL");
+        require(sig_ == IStrategy.triggerDefaultWithAmmId.selector, "L:INVALID_METHOD_CALL");
         strategy_ = IMarketState(getMarketStateAddress()).getStrategy(ammId_);
-        require(strategy_ != address(0), "LP:INVALID_STRATEGY");
+        require(strategy_ != address(0), "L:INVALID_STRATEGY");
     }
 
     function _fallback() internal override virtual {
