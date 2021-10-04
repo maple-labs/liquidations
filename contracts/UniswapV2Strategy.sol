@@ -5,66 +5,96 @@ import { ILoan }       from "../modules/loan/contracts/interfaces/ILoan.sol";
 import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 import { IERC20 }      from "../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 
-import { IStrategy }                             from "./interfaces/IStrategy.sol";
-import { IUniswapRouterLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
-import { IMarketState }                          from "./interfaces/IMarketState.sol";
+import { ILender }            from "./interfaces/ILender.sol";
+import { IStrategy }          from "./interfaces/IStrategy.sol";
+import { IUniswapRouterLike } from "./interfaces/Interfaces.sol";
 
-import { LiquidationsStateReader } from "./LiquidationsStateReader.sol";
+contract UniswapV2Strategy {
 
-contract UniswapV2Strategy is LiquidationsStateReader, IStrategy {
+    address public constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
 
     using ERC20Helper for address;
 
-    /// @dev Assumption - Before calling this function liquidator would transfer all the collateral to Liquidations (i.e proxy) contract.
-    function triggerDefaultWithAmmId(
-        bytes32 ammId_,
-        address loan_,
-        uint256 amount_,
+    enum Action { NORMAL, OTHER }
+
+    /// @dev ERC-3156 Flash loan callback 
+    /// TODO: Check if we need to add anything else here
+    function onFlashLoan(address initiator_, bytes calldata data_) external returns (bytes32) {
+        // require(msg.sender == address(lender), "FlashBorrower: Untrusted lender"); TODO: Do we need this if this contract will never hold a balance?
+        require(initiator_ == address(this), "FlashBorrower: Untrusted loan initiator");
+
+        (Action action) = abi.decode(data_, (Action));
+        return keccak256("ERC3156FlashBorrower.MapleFinance.onFlashLoan");
+    }
+
+    /// @dev Initiate a flash loan
+    function flashBorrowLiquidation(
+        address lender_, 
+        uint256 swapAmount_,
+        uint256 minReturnAmount_,
         address collateralAsset_,
-        address liquidityAsset_
+        address middleAsset_,
+        address fundsAsset_
+    ) 
+        public 
+    {
+        bytes memory data = abi.encode(Action.NORMAL);
+
+        uint256 repaymentAmount = ILender(lender_).getReturnAmount(swapAmount_);
+
+        IERC20(fundsAsset_).approve(lender_, uint256(0));       // TODO: Do we need to set to zero here?
+        IERC20(fundsAsset_).approve(lender_, repaymentAmount);  // TODO: ERC20Helper
+
+        ILender(lender_).flashLoanLiquidation(
+            address(this), 
+            swapAmount_, 
+            data, 
+            abi.encodeWithSelector(
+                this.swap.selector, 
+                swapAmount_, 
+                minReturnAmount_, 
+                collateralAsset_, 
+                middleAsset_, 
+                fundsAsset_
+            )
+        );
+    }
+
+    /// @dev Assumption - Before calling this function liquidator would transfer all the collateral to Liquidations (i.e proxy) contract.
+    function swap(
+        uint256 swapAmount_,
+        uint256 minReturnAmount_,
+        address collateralAsset_,
+        address middleAsset_,
+        address fundsAsset_
     )
-        external override
-        returns (
-            uint256 amountLiquidated_,
-            uint256 amountRecovered_
-        )
+        external
     {
         // Get the liquidation amount from loan.
-        require(IERC20(collateralAsset_).balanceOf(address(this)) >= amount_, "UniswapV2Strategy:INSUFFICIENT_COLLATERAL");
-
-        IMarketState marketState = IMarketState(getMarketStateAddress());
+        require(IERC20(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UniswapV2Strategy:WRONG_COLLATERAL_AMT");
         
-        if (collateralAsset_ == liquidityAsset_ || amount_ == uint256(0)) return (amount_, amount_);
+        // if (collateralAsset_ == liquidityAsset_ || amount_ == uint256(0)); // TODO: Think about this case
 
-        address router = marketState.getRouter(ammId_);
+        IERC20(collateralAsset_).approve(UNISWAP_ROUTER_V2, uint256(0));   // TODO: Do we need to set to zero here?
+        IERC20(collateralAsset_).approve(UNISWAP_ROUTER_V2, swapAmount_);  // TODO: ERC20Helper
 
-        collateralAsset_.approve(router, uint256(0));
-        collateralAsset_.approve(router, amount_);
+        bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);
 
-        // Get minimum amount of loan asset get after swapping collateral asset.
-        uint256 minAmount = marketState.calcMinAmount(IMapleGlobalsLike(marketState.globals()), collateralAsset_, liquidityAsset_, amount_);
-
-        // Generate Uniswap path.
-        address uniswapAssetForPath = marketState.getAmmPath(ammId_, collateralAsset_, liquidityAsset_);
-        bool middleAsset = uniswapAssetForPath != liquidityAsset_ && uniswapAssetForPath != address(0);
-
-        address[] memory path = new address[](middleAsset ? 3 : 2);
+        address[] memory path = new address[](hasMiddleAsset ? 3 : 2);
 
         path[0] = address(collateralAsset_);
-        path[1] = middleAsset ? uniswapAssetForPath : liquidityAsset_;
+        path[1] = hasMiddleAsset ? middleAsset_ : fundsAsset_;
 
-        if (middleAsset) path[2] = liquidityAsset_;
+        if (hasMiddleAsset) path[2] = fundsAsset_;
 
         // Swap collateralAsset for Liquidity Asset.
-        uint256[] memory returnAmounts = IUniswapRouterLike(marketState.getRouter(ammId_)).swapExactTokensForTokens(
-            amount_,
-            minAmount - (minAmount * IMapleGlobalsLike(marketState.globals()).maxSwapSlippage()) / 10_000,
+        uint256[] memory returnAmounts = IUniswapRouterLike(UNISWAP_ROUTER_V2).swapExactTokensForTokens(
+            swapAmount_,
+            minReturnAmount_,
             path,
             address(this),
             block.timestamp
         );
-
-        return(returnAmounts[0], returnAmounts[path.length - 1]);
     }
 
 }
