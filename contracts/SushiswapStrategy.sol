@@ -7,9 +7,9 @@ import { IERC20 }      from "../modules/erc20-helper/lib/erc20/src/interfaces/IE
 import { ILender }            from "./interfaces/ILender.sol";
 import { IUniswapRouterLike } from "./interfaces/Interfaces.sol";
 
-contract UniswapV2Strategy {
+contract SushiswapStrategy {
 
-    address public constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address public constant SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     /// @dev Initiate a flash loan
     function flashBorrowLiquidation(
@@ -53,9 +53,9 @@ contract UniswapV2Strategy {
         external
     {
         // Get the liquidation amount from loan.
-        require(IERC20(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UniswapV2Strategy:WRONG_COLLATERAL_AMT");
+        require(IERC20(collateralAsset_).balanceOf(address(this)) == swapAmount_, "SushiswapStrategy:WRONG_COLLATERAL_AMT");
         
-        ERC20Helper.approve(collateralAsset_, UNISWAP_ROUTER_V2, swapAmount_);
+        ERC20Helper.approve(collateralAsset_, SUSHISWAP_ROUTER, swapAmount_);
 
         bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);
 
@@ -67,7 +67,7 @@ contract UniswapV2Strategy {
         if (hasMiddleAsset) path[2] = fundsAsset_;
 
         // Swap collateralAsset for Liquidity Asset.
-        IUniswapRouterLike(UNISWAP_ROUTER_V2).swapExactTokensForTokens(
+        IUniswapRouterLike(SUSHISWAP_ROUTER).swapExactTokensForTokens(
             swapAmount_,
             minReturnAmount_,
             path,
@@ -75,7 +75,7 @@ contract UniswapV2Strategy {
             block.timestamp
         );
 
-        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "UniswapV2Strategy:PROFIT_TRANSFER");
+        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "SushiswapStrategy:PROFIT_TRANSFER");
     }
 
 }

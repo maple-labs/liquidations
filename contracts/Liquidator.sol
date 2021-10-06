@@ -10,17 +10,16 @@ interface IAuctioneer {
 }
 
 contract Liquidator {
+
     address public collateralAsset;
-    address public destination;
     address public auctioneer;
     address public fundsAsset;
     address public owner;
 
-    constructor(address owner_, address collateralAsset_, address fundsAsset_, address destination_, address auctioneer_) {
+    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_) {
         owner           = owner_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
-        destination     = destination_;
         auctioneer      = auctioneer_;
     }
 
@@ -29,9 +28,13 @@ contract Liquidator {
         auctioneer = auctioneer_;
     }
 
-    function setDestination(address destination_) external {
+    function pullFunds(address token_, address destination_, uint256 amount_) external {
         require(msg.sender == owner);
-        destination = destination_;
+        require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:DRAIN");
+    }
+
+    function getExpectedAmount(uint256 swapAmount_) public returns (uint256 expectedAmount_) {
+        return IAuctioneer(auctioneer).getExpectedAmount(swapAmount_);
     }
 
     function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external {
@@ -39,7 +42,7 @@ contract Liquidator {
 
         msg.sender.call(data_);
 
-        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, IAuctioneer(auctioneer).getExpectedAmount(swapAmount_)));
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), getExpectedAmount(swapAmount_)));
     }
 
 }
