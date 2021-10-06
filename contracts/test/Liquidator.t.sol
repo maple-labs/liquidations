@@ -226,297 +226,297 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(3_250_485_553902 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.984549507562998447 ether);  // ~ 1.5% savings on $3.3m liquidation, will do larger liquidations in another test
     }
 
-    // function test_liquidator_uniswapV2Strategy_largeLiquidation() public {
-    //     erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
-    //     erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
-    //     erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+    function test_liquidator_uniswapV2Strategy_largeLiquidation() public {
+        erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
+        erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
+        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
 
-    //     assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
-    //     assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-    //     assertEq(usdc.balanceOf(address(liquidator)),        0);
-    //     assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
-    //     assertEq(usdc.balanceOf(address(profitDestination)), 0);
+        assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-    //     /*************************************************/
-    //     /*** Peicewise Liquidations (223 liquidations) ***/
-    //     /*************************************************/
+        /*************************************************/
+        /*** Peicewise Liquidations (223 liquidations) ***/
+        /*************************************************/
 
-    //     while(weth.balanceOf(address(liquidator)) > 0) {
-    //         uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
+        while(weth.balanceOf(address(liquidator)) > 0) {
+            uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-    //         uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
+            uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
 
-    //         rebalancer.swap(UNISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
-    //     }
+            rebalancer.swap(UNISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
+        }
 
-    //     assertEq(weth.balanceOf(address(liquidator)),        0);
-    //     assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-    //     assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);
-    //     assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
-    //     assertEq(usdc.balanceOf(address(profitDestination)), 3_410_700_223339);
+        assertEq(weth.balanceOf(address(liquidator)),        0);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 3_410_700_223339);
 
-    //     /*****************************/
-    //     /*** Benchmark Liquidation ***/
-    //     /*****************************/
+        /*****************************/
+        /*** Benchmark Liquidation ***/
+        /*****************************/
 
-    //     assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
-    //     assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
-    //     assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
-    //     assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-    //     uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
-    //     assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
-    //     assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
-    //     assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 82_867_335_808521);
-    //     assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 82_867_335_808521);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-    //     assertEq(uint256(82_867_335_808521) * 10 ** 18 / uint256(330_149_528_178444), 0.250999407043621948 ether);  // ~75% savings on $340m liquidation
-    // }
+        assertEq(uint256(82_867_335_808521) * 10 ** 18 / uint256(330_149_528_178444), 0.250999407043621948 ether);  // ~75% savings on $340m liquidation
+    }
 
 }
 
-// contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
+contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
-//     address public constant SUSHISWAP_ROUTER_V2 = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
-//     address public constant USDC                = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-//     address public constant USDC_ORACLE         = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
-//     address public constant WETH                = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-//     address public constant WETH_ORACLE         = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+    address public constant SUSHISWAP_ROUTER_V2 = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+    address public constant USDC                = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant USDC_ORACLE         = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant WETH                = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant WETH_ORACLE         = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
-//     IERC20 constant usdc = IERC20(USDC);
-//     IERC20 constant weth = IERC20(WETH);
+    IERC20 constant usdc = IERC20(USDC);
+    IERC20 constant weth = IERC20(WETH);
 
-//     address constant profitDestination = address(111);  // Address that collects profits from swaps
+    address constant profitDestination = address(111);  // Address that collects profits from swaps
 
-//     AuctioneerMock    auctioneer;
-//     AuctioneerMock    benchmarkAuctioneer;
-//     Liquidator        benchmarkLiquidator;
-//     Liquidator        liquidator;
-//     MapleGlobalsMock  globals;
-//     Rebalancer        rebalancer;
-//     SushiswapStrategy sushiswapStrategy;
+    AuctioneerMock    auctioneer;
+    AuctioneerMock    benchmarkAuctioneer;
+    Liquidator        benchmarkLiquidator;
+    Liquidator        liquidator;
+    MapleGlobalsMock  globals;
+    Rebalancer        rebalancer;
+    SushiswapStrategy sushiswapStrategy;
 
-//     function setUp() external {
-//         globals = new MapleGlobalsMock();
+    function setUp() external {
+        globals = new MapleGlobalsMock();
 
-//         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
-//         benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
-//         benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
-//         liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
-//         sushiswapStrategy   = new SushiswapStrategy();
-//         rebalancer          = new Rebalancer();
+        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
+        benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
+        sushiswapStrategy   = new SushiswapStrategy();
+        rebalancer          = new Rebalancer();
 
-//         globals.setPriceOracle(WETH, WETH_ORACLE);
-//         globals.setPriceOracle(USDC, USDC_ORACLE);
-//     }
+        globals.setPriceOracle(WETH, WETH_ORACLE);
+        globals.setPriceOracle(USDC, USDC_ORACLE);
+    }
 
-//     function test_liquidator_sushiswapStrategy() public {
-//         erc20_mint(WETH, 3, address(liquidator),          2_000 ether);
-//         erc20_mint(WETH, 3, address(benchmarkLiquidator), 2_000 ether);
-//         erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+    function test_liquidator_sushiswapStrategy() public {
+        erc20_mint(WETH, 3, address(liquidator),          2_000 ether);
+        erc20_mint(WETH, 3, address(benchmarkLiquidator), 2_000 ether);
+        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
 
-//         uint256 returnAmount = liquidator.getExpectedAmount(2_000 ether);
+        uint256 returnAmount = liquidator.getExpectedAmount(2_000 ether);
 
-//         assertEq(returnAmount, 6_602_990_563570);  // $6.6m
+        assertEq(returnAmount, 6_602_990_563570);  // $6.6m
 
-//         assertEq(weth.balanceOf(address(liquidator)),        2_000 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        0);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+        assertEq(weth.balanceOf(address(liquidator)),        2_000 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-//         // Try liquidating amount that is above slippage requirements
-//         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        // Try liquidating amount that is above slippage requirements
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
 
-//         /*************************/
-//         /*** First Liquidation ***/
-//         /*************************/
+        /*************************/
+        /*** First Liquidation ***/
+        /*************************/
 
-//         uint256 returnAmount1 = liquidator.getExpectedAmount(950 ether);
-//         assertEq(returnAmount1, 3_136_420_517695);  // $1.59m
+        uint256 returnAmount1 = liquidator.getExpectedAmount(950 ether);
+        assertEq(returnAmount1, 3_136_420_517695);  // $1.59m
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        1050 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 2_366_149563);
+        assertEq(weth.balanceOf(address(liquidator)),        1050 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 2_366_149563);
 
-//         /**************************/
-//         /*** Second Liquidation ***/
-//         /**************************/
+        /**************************/
+        /*** Second Liquidation ***/
+        /**************************/
 
-//         rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
+        rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
 
-//         uint256 returnAmount2 = liquidator.getExpectedAmount(950 ether);
-//         assertEq(returnAmount2, 3_136_420_517695);  // $825k
+        uint256 returnAmount2 = liquidator.getExpectedAmount(950 ether);
+        assertEq(returnAmount2, 3_136_420_517695);  // $825k
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        100 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 5_039_959806);
+        assertEq(weth.balanceOf(address(liquidator)),        100 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 5_039_959806);
 
-//         /**************************/
-//         /*** Third Liquidation ***/
-//         /**************************/
+        /**************************/
+        /*** Third Liquidation ***/
+        /**************************/
 
-//         rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
+        rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
 
-//         uint256 returnAmount3 = liquidator.getExpectedAmount(100 ether);
-//         assertEq(returnAmount3, 330_149_528178);  // $881k
+        uint256 returnAmount3 = liquidator.getExpectedAmount(100 ether);
+        assertEq(returnAmount3, 330_149_528178);  // $881k
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, WETH, address(0), USDC, profitDestination);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2 + returnAmount3);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 10_233_419098);
+        assertEq(weth.balanceOf(address(liquidator)),        0 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2 + returnAmount3);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 10_233_419098);
 
-//         /*****************************/
-//         /*** Benchmark Liquidation ***/
-//         /*****************************/
+        /*****************************/
+        /*** Benchmark Liquidation ***/
+        /*****************************/
 
-//         rebalancer.swap(SUSHISWAP_ROUTER_V2, 50 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
+        rebalancer.swap(SUSHISWAP_ROUTER_V2, 50 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
 
-//         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 2_000 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-//         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 2_000 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
-//         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-//         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 6_481_487_535049);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 6_481_487_535049);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-//         assertEq(6_481_487_535049 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.981598788102258853 ether);  // ~ 1.9% savings on $6.6m liquidation, will do larger liquidations in another test
-//     }
+        assertEq(6_481_487_535049 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.981598788102258853 ether);  // ~ 1.9% savings on $6.6m liquidation, will do larger liquidations in another test
+    }
 
-//     function test_liquidator_sushiswapStrategy_largeLiquidation() public {
-//         erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
-//         erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
-//         erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+    function test_liquidator_sushiswapStrategy_largeLiquidation() public {
+        erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
+        erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
+        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        0);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+        assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-//         /*************************************************/
-//         /*** Peicewise Liquidations (223 liquidations) ***/
-//         /*************************************************/
+        /*************************************************/
+        /*** Peicewise Liquidations (223 liquidations) ***/
+        /*************************************************/
 
-//         while(weth.balanceOf(address(liquidator)) > 0) {
-//             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
+        while(weth.balanceOf(address(liquidator)) > 0) {
+            uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-//             sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
+            sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
 
-//             rebalancer.swap(SUSHISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
-//         }
+            rebalancer.swap(SUSHISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
+        }
 
-//         assertEq(weth.balanceOf(address(liquidator)),        0);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);  // Note that this is the exact same as the uniswap liquidation test, because the return amounts are the same.
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 4_835_774_802838);
+        assertEq(weth.balanceOf(address(liquidator)),        0);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);  // Note that this is the exact same as the uniswap liquidation test, because the return amounts are the same.
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 4_835_774_802838);
 
-//         /*****************************/
-//         /*** Benchmark Liquidation ***/
-//         /*****************************/
+        /*****************************/
+        /*** Benchmark Liquidation ***/
+        /*****************************/
 
-//         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-//         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
-//         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-//         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 123_850_243_565569);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 123_850_243_565569);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-//         assertEq(uint256(123_850_243_565569) * 10 ** 18 / uint256(330_149_528_178444), 0.375133789373851917 ether);  // ~63% savings on $340m liquidation
-//     }
+        assertEq(uint256(123_850_243_565569) * 10 ** 18 / uint256(330_149_528_178444), 0.375133789373851917 ether);  // ~63% savings on $340m liquidation
+    }
 
-// }
+}
 
-// contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
+contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
 
-//     address public constant SUSHISWAP_ROUTER_V2 = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
-//     address public constant UNISWAP_ROUTER_V2   = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-//     address public constant USDC                = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-//     address public constant USDC_ORACLE         = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
-//     address public constant WETH                = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-//     address public constant WETH_ORACLE         = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+    address public constant SUSHISWAP_ROUTER_V2 = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+    address public constant UNISWAP_ROUTER_V2   = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address public constant USDC                = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant USDC_ORACLE         = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant WETH                = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant WETH_ORACLE         = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
-//     IERC20 constant usdc = IERC20(USDC);
-//     IERC20 constant weth = IERC20(WETH);
+    IERC20 constant usdc = IERC20(USDC);
+    IERC20 constant weth = IERC20(WETH);
 
-//     address constant profitDestination = address(111);  // Address that collects profits from swaps
+    address constant profitDestination = address(111);  // Address that collects profits from swaps
 
-//     AuctioneerMock    auctioneer;
-//     Liquidator        liquidator;
-//     MapleGlobalsMock  globals;
-//     SushiswapStrategy sushiswapStrategy;
-//     UniswapV2Strategy uniswapV2Strategy;
+    AuctioneerMock    auctioneer;
+    Liquidator        liquidator;
+    MapleGlobalsMock  globals;
+    SushiswapStrategy sushiswapStrategy;
+    UniswapV2Strategy uniswapV2Strategy;
 
-//     function setUp() external {
-//         globals = new MapleGlobalsMock();
+    function setUp() external {
+        globals = new MapleGlobalsMock();
 
-//         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
-//         liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
-//         sushiswapStrategy   = new SushiswapStrategy();
-//         uniswapV2Strategy   = new UniswapV2Strategy();
+        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
+        sushiswapStrategy   = new SushiswapStrategy();
+        uniswapV2Strategy   = new UniswapV2Strategy();
 
-//         globals.setPriceOracle(WETH, WETH_ORACLE);
-//         globals.setPriceOracle(USDC, USDC_ORACLE);
-//     }
+        globals.setPriceOracle(WETH, WETH_ORACLE);
+        globals.setPriceOracle(USDC, USDC_ORACLE);
+    }
 
-//     // TODO: Update this test suite once UniswapV3 is implemented
-//     function test_liquidator_multipleStrategies() public {
-//         erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
+    // TODO: Update this test suite once UniswapV3 is implemented
+    function test_liquidator_multipleStrategies() public {
+        erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        1_400 ether);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(liquidator)),        1_400 ether);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         
-//         assertEq(usdc.balanceOf(address(liquidator)),        0);
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-//         // Try liquidating amounts that are above slippage requirements (determined with while loop)
-//         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
-//         try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 484 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        // Try liquidating amounts that are above slippage requirements (determined with while loop)
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 484 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
 
-//         /**********************************/
-//         /*** Mutli-Strategy Liquidation ***/
-//         /**********************************/
+        /**********************************/
+        /*** Mutli-Strategy Liquidation ***/
+        /**********************************/
 
-//         uint256 returnAmount = liquidator.getExpectedAmount(1_400 ether);
-//         assertEq(returnAmount, 4_622_093_394499);  // $4.62m
+        uint256 returnAmount = liquidator.getExpectedAmount(1_400 ether);
+        assertEq(returnAmount, 4_622_093_394499);  // $4.62m
 
-//         sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
-//         uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 450 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
+        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 450 ether, WETH, address(0), USDC, profitDestination);
 
-//         assertEq(weth.balanceOf(address(liquidator)),        0);
-//         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(liquidator)),        0);
+        assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         
-//         assertWithinDiff(usdc.balanceOf(address(liquidator)), returnAmount, 1);
+        assertWithinDiff(usdc.balanceOf(address(liquidator)), returnAmount, 1);
 
-//         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-//         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
-//         assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);
-//     }
+        assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);
+    }
 
-// }
+}
