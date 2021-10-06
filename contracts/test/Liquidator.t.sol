@@ -3,61 +3,17 @@ pragma solidity ^0.8.7;
 
 import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
 import { IERC20 }                        from "../../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
+import { MockERC20 }                     from "../../modules/erc20-helper/lib/erc20/src/test/mocks/MockERC20.sol";
 
-import { IOracle, IUniswapRouterLike } from "../interfaces/Interfaces.sol";
+import { IUniswapRouterLike } from "../interfaces/Interfaces.sol";
 
 import { Liquidator }        from "../Liquidator.sol";
 import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
 import { SushiswapStrategy } from "../SushiswapStrategy.sol";
 
-contract MapleGlobalsLike {
+import { Owner } from "./accounts/Owner.sol";
 
-    mapping (address => address) public oracleFor;
-
-    function getLatestPrice(address asset) external view returns (uint256) {
-        (, int256 price,,,) = IOracle(oracleFor[asset]).latestRoundData();
-        return uint256(price);
-    }
-
-    function setPriceOracle(address asset, address oracle) external {
-        oracleFor[asset] = oracle;
-    }
-
-}
-
-contract AuctioneerLike {
-
-    address public owner;
-    address public collateralAsset;
-    address public fundsAsset;
-    address public globals;
-    uint256 public allowedSlippage;
-    uint256 public minRatio;
-
-    constructor(address globals_, address collateralAsset_, address fundsAsset_, uint256 allowedSlippage_, uint256 minRatio_) {
-        owner           = msg.sender;
-        globals         = globals_;
-        collateralAsset = collateralAsset_;
-        fundsAsset      = fundsAsset_;
-        allowedSlippage = allowedSlippage_;
-        minRatio        = minRatio_;
-    }
-
-    function getExpectedAmount(uint256 swapAmount_) public view returns (uint256 returnAmount_) {
-        uint256 oracleAmount = 
-            swapAmount_
-                * MapleGlobalsLike(globals).getLatestPrice(collateralAsset)  // Convert from `fromAsset` value.
-                * 10 ** IERC20(fundsAsset).decimals()                        // Convert to `toAsset` decimal precision.
-                * (10_000 - allowedSlippage)                                 // Multiply by allowed slippage basis points
-                / MapleGlobalsLike(globals).getLatestPrice(fundsAsset)       // Convert to `toAsset` value.
-                / 10 ** IERC20(collateralAsset).decimals()                   // Convert from `fromAsset` decimal precision.
-                / 10_000;                                                    // Divide basis points for slippage
-        
-        uint256 minRatioAmount = swapAmount_ * minRatio / 10 ** IERC20(collateralAsset).decimals();
-
-        return oracleAmount > minRatioAmount ? oracleAmount : minRatioAmount;
-    }
-}
+import { AuctioneerMock, MapleGlobalsMock } from "./mocks/Mocks.sol";
 
 // Contract to perform fake arbitrage transactions to prop price back up
 contract Rebalancer is StateManipulations {
@@ -72,7 +28,7 @@ contract Rebalancer is StateManipulations {
     )
         external
     {
-        IERC20(fromAsset_).approve(router_, amountInMax_);  // TODO: ERC20Helper
+        IERC20(fromAsset_).approve(router_, amountInMax_);
 
         bool hasMiddleAsset = middleAsset_ != toAsset_ && middleAsset_ != address(0);
 
@@ -94,6 +50,59 @@ contract Rebalancer is StateManipulations {
 
 }
 
+contract LiquidatorAdminTest is TestUtils {
+
+    address auctioneer = address(111);
+    address globals    = address(222);
+
+    Liquidator liquidator;
+    MockERC20  collateralAsset;
+    MockERC20  fundsAsset;
+    Owner      owner;
+    Owner      notOwner;
+
+    function setUp() external {
+        collateralAsset = new MockERC20("CollateralAsset", "CA", 18);
+        fundsAsset      = new MockERC20("FundsAsset",      "FA", 18);
+        notOwner        = new Owner();
+        owner           = new Owner();
+        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer);
+    }
+
+    function test_setAuctioneer() external {
+        assertEq(liquidator.auctioneer(), address(111));
+        assertEq(liquidator.owner(),      address(owner));
+
+        assertTrue(!notOwner.try_liquidator_setAuctioneer(address(liquidator), address(123)));
+        assertTrue(    owner.try_liquidator_setAuctioneer(address(liquidator), address(123)));
+
+        assertEq(liquidator.auctioneer(), address(123));
+    }
+
+    function test_pullFunds() external {
+        address fundsDestination = address(1);
+
+        collateralAsset.mint(address(liquidator), 10 ether);
+        fundsAsset.mint(address(liquidator),      20 ether);
+
+        assertEq(collateralAsset.balanceOf(address(liquidator)),       10 ether);
+        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 0);
+        assertEq(fundsAsset.balanceOf(address(liquidator)),            20 ether);
+        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      0);
+
+        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
+        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
+        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
+        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
+
+        assertEq(collateralAsset.balanceOf(address(liquidator)),       0);
+        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 10 ether);
+        assertEq(fundsAsset.balanceOf(address(liquidator)),            0);
+        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      20 ether);
+    }
+    
+}
+
 contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
     address public constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -107,21 +116,21 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
     address constant profitDestination = address(111);  // Address that collects profits from swaps
 
-    AuctioneerLike    auctioneer;
-    AuctioneerLike    benchmarkAuctioneer;
+    AuctioneerMock    auctioneer;
+    AuctioneerMock    benchmarkAuctioneer;
     Liquidator        benchmarkLiquidator;
     Liquidator        liquidator;
-    MapleGlobalsLike  globals;
+    MapleGlobalsMock  globals;
     Rebalancer        rebalancer;
     UniswapV2Strategy uniswapV2Strategy;
 
     function setUp() external {
-        globals = new MapleGlobalsLike();
+        globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerLike(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
-        benchmarkAuctioneer = new AuctioneerLike(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
-        benchmarkLiquidator = new Liquidator(address(this),    WETH, USDC, address(benchmarkAuctioneer));
-        liquidator          = new Liquidator(address(globals), WETH, USDC, address(auctioneer));
+        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
+        benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
         uniswapV2Strategy   = new UniswapV2Strategy();
         rebalancer          = new Rebalancer();
 
@@ -280,21 +289,21 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
     address constant profitDestination = address(111);  // Address that collects profits from swaps
 
-    AuctioneerLike    auctioneer;
-    AuctioneerLike    benchmarkAuctioneer;
+    AuctioneerMock    auctioneer;
+    AuctioneerMock    benchmarkAuctioneer;
     Liquidator        benchmarkLiquidator;
     Liquidator        liquidator;
-    MapleGlobalsLike  globals;
+    MapleGlobalsMock  globals;
     Rebalancer        rebalancer;
     SushiswapStrategy sushiswapStrategy;
 
     function setUp() external {
-        globals = new MapleGlobalsLike();
+        globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerLike(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
-        benchmarkAuctioneer = new AuctioneerLike(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
-        benchmarkLiquidator = new Liquidator(address(this),    WETH, USDC, address(benchmarkAuctioneer));
-        liquidator          = new Liquidator(address(globals), WETH, USDC, address(auctioneer));
+        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
+        benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
         sushiswapStrategy   = new SushiswapStrategy();
         rebalancer          = new Rebalancer();
 
@@ -454,17 +463,17 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
 
     address constant profitDestination = address(111);  // Address that collects profits from swaps
 
-    AuctioneerLike    auctioneer;
+    AuctioneerMock    auctioneer;
     Liquidator        liquidator;
-    MapleGlobalsLike  globals;
+    MapleGlobalsMock  globals;
     SushiswapStrategy sushiswapStrategy;
     UniswapV2Strategy uniswapV2Strategy;
 
     function setUp() external {
-        globals = new MapleGlobalsLike();
+        globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerLike(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator          = new Liquidator(address(globals), WETH, USDC, address(auctioneer));
+        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
         sushiswapStrategy   = new SushiswapStrategy();
         uniswapV2Strategy   = new UniswapV2Strategy();
 
