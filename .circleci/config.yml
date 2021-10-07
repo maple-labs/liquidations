@@ -4,6 +4,7 @@ jobs:
   dapp_test:
     docker:
       - image: bakii0499/dapptools:0.48.0-solc-0.8.7
+    resource_class: large
     steps:
       - run:
           name: Checkout liquidations
