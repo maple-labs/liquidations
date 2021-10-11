@@ -1,18 +1,15 @@
 {
     "language": "Solidity",
     "sources": {
-       "contracts/Liquidations.sol": {
-        "urls": ["contracts/Liquidations.sol"]
-      },
-      "contracts/LiquidationsStateReader.sol": {
-        "urls": ["contracts/LiquidationsStateReader.sol"]
-      },
-      "contracts/MarketState.sol": {
-        "urls": ["contracts/MarketState.sol"]
+      "contracts/Liquidator.sol": {
+        "urls": ["contracts/Liquidator.sol"]
       },
       "contracts/UniswapV2Strategy.sol": {
         "urls": ["contracts/UniswapV2Strategy.sol"]
-      }
+      },
+      "contracts/SushiswapStrategy.sol": {
+        "urls": ["contracts/SushiswapStrategy.sol"]
+      },
     },
     "settings": {
       "optimizer": {
