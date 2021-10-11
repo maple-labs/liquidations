@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   dapp_test:
     docker:
-      - image: bakii0499/dapptools:0.48.1-solc-0.8.7
+      - image: bakii0499/dapptools:0.48.1-solc-0.8.7-beta
     resource_class: medium
     steps:
       - run:
