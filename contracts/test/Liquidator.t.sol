@@ -66,7 +66,7 @@ contract LiquidatorAdminTest is TestUtils {
         fundsAsset      = new MockERC20("FundsAsset",      "FA", 18);
         notOwner        = new Owner();
         owner           = new Owner();
-        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer);
+        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer, address(1));
     }
 
     function test_setAuctioneer() external {
@@ -114,8 +114,10 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
     IERC20 constant usdc = IERC20(USDC);
     IERC20 constant weth = IERC20(WETH);
 
-    address constant profitDestination = address(111);  // Address that collects profits from swaps
-
+    address constant fundsDestination  = address(5858);  // Address that collects expected funds from swaps
+    address constant fundsDestination2 = address(6868);  // Address that collects expected funds from swaps (benchmark)
+    address constant profitDestination = address(1122);  // Address that collects profits from swaps
+    
     AuctioneerMock    auctioneer;
     AuctioneerMock    benchmarkAuctioneer;
     Liquidator        benchmarkLiquidator;
@@ -129,8 +131,9 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
         benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
+        
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2);
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination);
         uniswapV2Strategy   = new UniswapV2Strategy();
         rebalancer          = new Rebalancer();
 
@@ -150,6 +153,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(liquidator)),        1_000 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
@@ -167,7 +171,8 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        517 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 13_001643);
 
@@ -184,7 +189,8 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        267 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1 + returnAmount2);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 6_047_538289);
 
@@ -201,7 +207,8 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2 + returnAmount3);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1 + returnAmount2 + returnAmount3);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 12_066_770467);
 
@@ -214,32 +221,35 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 1000 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
-        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 3_250_485_553902);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   3_250_485_553902);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
         assertEq(3_250_485_553902 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.984549507562998447 ether);  // ~ 1.5% savings on $3.3m liquidation, will do larger liquidations in another test
     }
 
     function test_liquidator_uniswapV2Strategy_largeLiquidation() public {
-        erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
+        erc20_mint(WETH, 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
+        erc20_mint(WETH, 3, address(benchmarkLiquidator), 10_000 ether);
         erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
 
-        assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
+        assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-        /*************************************************/
-        /*** Peicewise Liquidations (223 liquidations) ***/
-        /*************************************************/
+        /******************************/
+        /*** Peicewise Liquidations ***/
+        /******************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
@@ -251,27 +261,30 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  330_149_528_17844);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
-        assertEq(usdc.balanceOf(address(profitDestination)), 3_410_700_223339);
+        assertEq(usdc.balanceOf(address(profitDestination)), 66_683_168893);
 
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
 
-        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 10_000 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
-        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 82_867_335_808521);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   25_590_976_821869);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-        assertEq(uint256(82_867_335_808521) * 10 ** 18 / uint256(330_149_528_178444), 0.250999407043621948 ether);  // ~75% savings on $340m liquidation
+        assertEq(uint256(25_590_976_821869) * 10 ** 18 / uint256(330_149_528_17844), 0.775132921227060732 ether);  // ~22.4% savings on $340m liquidation
     }
 
 }
@@ -287,7 +300,9 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
     IERC20 constant usdc = IERC20(USDC);
     IERC20 constant weth = IERC20(WETH);
 
-    address constant profitDestination = address(111);  // Address that collects profits from swaps
+    address constant fundsDestination  = address(5858);  // Address that collects expected funds from swaps
+    address constant fundsDestination2 = address(6868);  // Address that collects expected funds from swaps (benchmark)
+    address constant profitDestination = address(1122);  // Address that collects profits from swaps
 
     AuctioneerMock    auctioneer;
     AuctioneerMock    benchmarkAuctioneer;
@@ -302,8 +317,9 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
         benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
+        
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2);
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination);
         sushiswapStrategy   = new SushiswapStrategy();
         rebalancer          = new Rebalancer();
 
@@ -323,6 +339,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(liquidator)),        2_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
@@ -340,7 +357,8 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        1050 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 2_366_149563);
 
@@ -357,7 +375,8 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        100 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1 + returnAmount2);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 5_039_959806);
 
@@ -374,7 +393,8 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2 + returnAmount3);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  returnAmount1 + returnAmount2 + returnAmount3);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 10_233_419098);
 
@@ -387,32 +407,35 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 2_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 6_481_487_535049);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   6_481_487_535049);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
         assertEq(6_481_487_535049 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.981598788102258853 ether);  // ~ 1.9% savings on $6.6m liquidation, will do larger liquidations in another test
     }
 
     function test_liquidator_sushiswapStrategy_largeLiquidation() public {
-        erc20_mint(WETH, 3, address(liquidator),          100_000 ether);  // ~$340m to liquidate
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 100_000 ether);
+        erc20_mint(WETH, 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
+        erc20_mint(WETH, 3, address(benchmarkLiquidator), 10_000 ether);
         erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
 
-        assertEq(weth.balanceOf(address(liquidator)),        100_000 ether);
+        assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-        /*************************************************/
-        /*** Peicewise Liquidations (223 liquidations) ***/
-        /*************************************************/
+        /******************************/
+        /*** Peicewise Liquidations ***/
+        /******************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
@@ -424,27 +447,30 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_178444);  // Note that this is the exact same as the uniswap liquidation test, because the return amounts are the same.
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  330_149_528_17844);  // Note that this is the exact same as the uniswap liquidation test, because the return amounts are the same.
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(profitDestination)), 4_835_774_802838);
+        assertEq(usdc.balanceOf(address(profitDestination)), 328_752_316354);
 
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
 
-        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 100_000 ether);
+        assertEq(weth.balanceOf(address(benchmarkLiquidator)), 10_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 100_000 ether, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
-        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 123_850_243_565569);
+        assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination2)),   28_637_543_873315);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        assertEq(uint256(123_850_243_565569) * 10 ** 18 / uint256(330_149_528_178444), 0.375133789373851917 ether);  // ~63% savings on $340m liquidation
+        assertEq(uint256(28_637_543_873315) * 10 ** 18 / uint256(330_149_528_17844), 0.867411322115744850 ether);  // ~13.2% savings on $34m liquidation
     }
 
 }
@@ -461,7 +487,8 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
     IERC20 constant usdc = IERC20(USDC);
     IERC20 constant weth = IERC20(WETH);
 
-    address constant profitDestination = address(111);  // Address that collects profits from swaps
+    address constant fundsDestination  = address(5858);  // Address that collects expected funds from swaps
+    address constant profitDestination = address(1122);  // Address that collects profits from swaps
 
     AuctioneerMock    auctioneer;
     Liquidator        liquidator;
@@ -473,7 +500,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         globals = new MapleGlobalsMock();
 
         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer));
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
         sushiswapStrategy   = new SushiswapStrategy();
         uniswapV2Strategy   = new UniswapV2Strategy();
 
@@ -490,6 +517,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         
         assertEq(usdc.balanceOf(address(liquidator)),        0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
@@ -512,8 +540,9 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         
-        assertWithinDiff(usdc.balanceOf(address(liquidator)), returnAmount, 1);
+        assertWithinDiff(usdc.balanceOf(address(fundsDestination)), returnAmount, 1);
 
+        assertEq(usdc.balanceOf(address(liquidator)), 0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);

@@ -9,6 +9,11 @@ interface ILiquidator {
     function collateralAsset() external view returns (address);
 
     /**
+     * @dev Getter function that returns `destination` - address that liquidated funds are sent to.
+     */
+    function destination() external view returns (address);
+
+    /**
      * @dev Getter function that returns `auctioneer`
      */
     function auctioneer() external view returns (address);

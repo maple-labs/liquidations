@@ -8,16 +8,18 @@ import { IAuctioneerLike } from "./interfaces/Interfaces.sol";
 
 contract Liquidator is ILiquidator {
 
-    address public override collateralAsset;
     address public override auctioneer;
+    address public override collateralAsset;
+    address public override destination;
     address public override fundsAsset;
     address public override owner;
 
-    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_) {
+    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_) {
         owner           = owner_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
         auctioneer      = auctioneer_;
+        destination     = destination_;
     }
 
     function setAuctioneer(address auctioneer_) external override {
@@ -39,7 +41,7 @@ contract Liquidator is ILiquidator {
 
         msg.sender.call(data_);
 
-        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), getExpectedAmount(swapAmount_)), "LIQ:LP:TRANSFER_FROM");
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, getExpectedAmount(swapAmount_)), "LIQ:LP:TRANSFER_FROM");
     }
 
 }
