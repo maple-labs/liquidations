@@ -247,9 +247,9 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-        /*************************************************/
-        /*** Peicewise Liquidations (223 liquidations) ***/
-        /*************************************************/
+        /******************************/
+        /*** Peicewise Liquidations ***/
+        /******************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
@@ -433,9 +433,9 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
-        /*************************************************/
-        /*** Peicewise Liquidations (223 liquidations) ***/
-        /*************************************************/
+        /******************************/
+        /*** Peicewise Liquidations ***/
+        /******************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
