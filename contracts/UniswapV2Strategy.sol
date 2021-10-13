@@ -38,7 +38,6 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
         );
     }
 
-    // TODO: Think about collateralAsset == fundsAsset
     function swap(
         uint256 swapAmount_,
         uint256 minReturnAmount_,
