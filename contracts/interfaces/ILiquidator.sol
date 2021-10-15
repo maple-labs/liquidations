@@ -4,6 +4,28 @@ pragma solidity 0.8.7;
 interface ILiquidator {
 
     /**
+     * @dev Auctioneer was set.
+     * @param auctioneer_ Address of the auctioneer.
+     */
+    event AuctioneerSet(address auctioneer_);
+
+    /**
+     * @dev Funds were withdrawn from the liquidator.
+     * @param token_       Address of the token that was withdrawn.
+     * @param destination_ Address of where tokens were sent.
+     * @param amount_      Amount of tokens that were sent.
+     */
+    event FundsPulled(address token_, address destination_, uint256 amount_);
+
+    /**
+     * @dev Portion of collateral was liquidated.
+     * @param swapAmount_     Amount of collateralAsset that was liquidated.
+     * @param returnedAmount_ Amount of fundsAsset that was returned.
+     */
+    event PortionLiquidated(uint256 swapAmount_, uint256 returnedAmount_);
+    
+
+    /**
      * @dev Getter function that returns `collateralAsset`
      */
     function collateralAsset() external view returns (address);
