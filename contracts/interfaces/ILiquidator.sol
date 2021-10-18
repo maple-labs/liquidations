@@ -23,7 +23,6 @@ interface ILiquidator {
      * @param returnedAmount_ Amount of fundsAsset that was returned.
      */
     event PortionLiquidated(uint256 swapAmount_, uint256 returnedAmount_);
-    
 
     /**
      * @dev Getter function that returns `collateralAsset`
