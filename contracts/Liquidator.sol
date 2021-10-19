@@ -25,11 +25,13 @@ contract Liquidator is ILiquidator {
     function setAuctioneer(address auctioneer_) external override {
         require(msg.sender == owner, "LIQ:SA:NOT_OWNER");
         auctioneer = auctioneer_;
+        emit AuctioneerSet(auctioneer_);
     }
 
     function pullFunds(address token_, address destination_, uint256 amount_) external override {
         require(msg.sender == owner,                                 "LIQ:PF:NOT_OWNER");
         require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
+        emit FundsPulled(token_, destination_, amount_);
     }
 
     function getExpectedAmount(uint256 swapAmount_) public view override returns (uint256 expectedAmount_) {
@@ -41,7 +43,11 @@ contract Liquidator is ILiquidator {
 
         msg.sender.call(data_);
 
-        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, getExpectedAmount(swapAmount_)), "LIQ:LP:TRANSFER_FROM");
+        uint256 returnAmount = getExpectedAmount(swapAmount_);
+
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
+
+        emit PortionLiquidated(swapAmount_, returnAmount);
     }
 
 }
