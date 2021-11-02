@@ -5,50 +5,13 @@ import { TestUtils, StateManipulations } from "../../modules/contract-test-utils
 import { IERC20 }                        from "../../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
 import { MockERC20 }                     from "../../modules/erc20-helper/lib/erc20/src/test/mocks/MockERC20.sol";
 
-import { IUniswapRouterLike } from "../interfaces/Interfaces.sol";
-
 import { Liquidator }        from "../Liquidator.sol";
 import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
 import { SushiswapStrategy } from "../SushiswapStrategy.sol";
 
 import { Owner } from "./accounts/Owner.sol";
 
-import { AuctioneerMock, MapleGlobalsMock } from "./mocks/Mocks.sol";
-
-// Contract to perform fake arbitrage transactions to prop price back up
-contract Rebalancer is StateManipulations {
-
-    function swap(
-        address router_,
-        uint256 amountOut_,
-        uint256 amountInMax_,
-        address fromAsset_,
-        address middleAsset_,
-        address toAsset_
-    )
-        external
-    {
-        IERC20(fromAsset_).approve(router_, amountInMax_);
-
-        bool hasMiddleAsset = middleAsset_ != toAsset_ && middleAsset_ != address(0);
-
-        address[] memory path = new address[](hasMiddleAsset ? 3 : 2);
-
-        path[0] = address(fromAsset_);
-        path[1] = hasMiddleAsset ? middleAsset_ : toAsset_;
-
-        if (hasMiddleAsset) path[2] = toAsset_;
-
-        IUniswapRouterLike(router_).swapTokensForExactTokens(
-            amountOut_,
-            amountInMax_,
-            path,
-            address(this),
-            block.timestamp
-        );
-    }
-
-}
+import { AuctioneerMock, MapleGlobalsMock, Rebalancer } from "./mocks/Mocks.sol";
 
 contract LiquidatorAdminTest is TestUtils {
 
