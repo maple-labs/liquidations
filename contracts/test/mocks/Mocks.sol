@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.7;
 
-import { IERC20Like, IMapleGlobalsLike, IOracleLike } from "../../interfaces/Interfaces.sol";
+import { IERC20Like, IMapleGlobalsLike, IOracleLike, IUniswapRouterLike } from "../../interfaces/Interfaces.sol";
+
+import { StateManipulations } from "../../../modules/contract-test-utils/contracts/test.sol";
 
 contract AuctioneerMock {
 
@@ -48,6 +50,41 @@ contract MapleGlobalsMock {
 
     function setPriceOracle(address asset, address oracle) external {
         oracleFor[asset] = oracle;
+    }
+
+}
+
+// Contract to perform fake arbitrage transactions to prop price back up
+contract Rebalancer is StateManipulations {
+
+    function swap(
+        address router_,
+        uint256 amountOut_,
+        uint256 amountInMax_,
+        address fromAsset_,
+        address middleAsset_,
+        address toAsset_
+    )
+        external
+    {
+        IERC20Like(fromAsset_).approve(router_, amountInMax_);
+
+        bool hasMiddleAsset = middleAsset_ != toAsset_ && middleAsset_ != address(0);
+
+        address[] memory path = new address[](hasMiddleAsset ? 3 : 2);
+
+        path[0] = address(fromAsset_);
+        path[1] = hasMiddleAsset ? middleAsset_ : toAsset_;
+
+        if (hasMiddleAsset) path[2] = toAsset_;
+
+        IUniswapRouterLike(router_).swapTokensForExactTokens(
+            amountOut_,
+            amountInMax_,
+            path,
+            address(this),
+            block.timestamp
+        );
     }
 
 }

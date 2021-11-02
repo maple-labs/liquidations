@@ -9,6 +9,8 @@ interface IAuctioneerLike {
 
 interface IERC20Like {
 
+    function approve(address account_, uint256 amount_) external;
+
     function balanceOf(address account_) external view returns (uint256 balance_);
 
     function decimals() external view returns (uint256 decimals_);
