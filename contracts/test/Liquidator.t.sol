@@ -568,7 +568,7 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
         try liquidator.liquidatePortion(1_400 ether + 1, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
 
-        liquidator.liquidatePortion(1_400 ether, arguments);  // Successful when calleed with correct balance and approval
+        liquidator.liquidatePortion(1_400 ether, arguments);  // Successful when called with correct balance and approval
 
         // Ending state
         assertEq(weth.balanceOf(address(liquidator)),       0);
