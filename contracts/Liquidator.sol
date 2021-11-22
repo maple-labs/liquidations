@@ -39,7 +39,7 @@ contract Liquidator is ILiquidator {
     }
 
     function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external override {
-        ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_);
+        require(ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_), "LIQ:LP:TRANSFER");
 
         msg.sender.call(data_);
 
