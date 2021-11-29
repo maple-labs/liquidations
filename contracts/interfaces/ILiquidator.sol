@@ -78,9 +78,10 @@ interface ILiquidator {
      * @dev   2. Performs an arbitrary call to `msg.sender`, to trigger logic necessary to get `fundsAsset` (e.g., AMM swap).
      * @dev   3. Perfroms a `transferFrom`, taking the corresponding amount of `fundsAsset` from the user.
      * @dev   If the required amount of `fundsAsset` is not returned in step 3, the entire transaction reverts.
-     * @param swapAmount_ Amount of `collateralAsset` that is to be borrowed in the flashloan.
-     * @param data_       ABI-encoded arguments to be used in the low-level call to perform step 2.
+     * @param swapAmount_      Amount of `collateralAsset` that is to be borrowed in the flashloan.
+     * @param maxReturnAmount_ Max amount of `fundsAsset` that can be returned to the liquidator contract.
+     * @param data_            ABI-encoded arguments to be used in the low-level call to perform step 2.
      */
-    function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external;
+    function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external;
     
 }

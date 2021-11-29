@@ -38,12 +38,13 @@ contract Liquidator is ILiquidator {
         return IAuctioneerLike(auctioneer).getExpectedAmount(swapAmount_);
     }
 
-    function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external override {
+    function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override {
         require(ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_), "LIQ:LP:TRANSFER");
 
         msg.sender.call(data_);
 
         uint256 returnAmount = getExpectedAmount(swapAmount_);
+        require(returnAmount <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
 
         require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
 
