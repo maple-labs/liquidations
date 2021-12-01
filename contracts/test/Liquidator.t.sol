@@ -565,7 +565,7 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
         bytes memory arguments = new bytes(0);
 
-        try liquidator.liquidatePortion(1_400 ether, arguments) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
+        try liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
 
         uint256 returnAmount2 = liquidator.getExpectedAmount(1_400 ether + 1);  // Return amount for over-liquidation
 
@@ -573,9 +573,11 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
         usdc.approve(address(liquidator), returnAmount1);  // Approve for the correct amount
 
-        try liquidator.liquidatePortion(1_400 ether + 1, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
+        try liquidator.liquidatePortion(1_400 ether + 1, type(uint256).max, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
 
-        liquidator.liquidatePortion(1_400 ether, arguments);  // Successful when called with correct balance and approval
+        try liquidator.liquidatePortion(1_400 ether, returnAmount2 - 1, arguments) { assertTrue(false, "Liquidation for less than returnAmount"); } catch { }
+
+        liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments);  // Successful when called with correct balance and approval
 
         // Ending state
         assertEq(weth.balanceOf(address(liquidator)),       0);
