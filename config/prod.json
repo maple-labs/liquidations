@@ -1,37 +1,37 @@
 {
     "language": "Solidity",
     "sources": {
-      "contracts/Liquidator.sol": {
-        "urls": ["contracts/Liquidator.sol"]
-      },
-      "contracts/UniswapV2Strategy.sol": {
-        "urls": ["contracts/UniswapV2Strategy.sol"]
-      },
-      "contracts/SushiswapStrategy.sol": {
-        "urls": ["contracts/SushiswapStrategy.sol"]
-      },
+        "contracts/Liquidator.sol": {
+            "urls": ["contracts/Liquidator.sol"]
+        },
+        "contracts/SushiswapStrategy.sol": {
+            "urls": ["contracts/SushiswapStrategy.sol"]
+        },
+        "contracts/UniswapV2Strategy.sol": {
+            "urls": ["contracts/UniswapV2Strategy.sol"]
+        }
     },
     "settings": {
-      "optimizer": {
-        "enabled": true,
-        "runs": 200
-      },
-      "outputSelection": {
-        "*": {
-          "*": [
-            "abi",
-            "devdoc",
-            "userdoc",
-            "metadata",
-            "evm.bytecode",
-            "evm.deployedBytecode",
-            "evm.gasEstimates"
-          ],
-          "": ["ast"]
+        "optimizer": {
+            "enabled": true,
+            "runs": 200
+        },
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "abi",
+                    "devdoc",
+                    "userdoc",
+                    "metadata",
+                    "evm.bytecode",
+                    "evm.deployedBytecode",
+                    "evm.gasEstimates"
+                ],
+            "": ["ast"]
+            }
+        },
+        "metadata": {
+            "bytecodeHash": "none"
         }
-      },
-      "metadata": {
-        "bytecodeHash": "none"
-      }
     }
-  }
+}
