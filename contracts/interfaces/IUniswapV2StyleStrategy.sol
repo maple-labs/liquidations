@@ -31,6 +31,7 @@ interface IUniswapV2StyleStrategy {
      * @dev Function that calls `liquidatePortion` in the liquidator, flash-borrowing funds to swap.
      * @param lender_             Address that will flashloan `swapAmount_` of `collateralAsset`
      * @param swapAmount_         Amount of `collateralAsset_` to be swapped.
+     * @param maxReturnAmount_    Max amount of `fundsAsset` that can be returned to the liquidator contract.
      * @param collateralAsset_    Asset that is flash-borrowed.
      * @param middleAsset_        Optional middle asset to add to `path` of the AMM.
      * @param fundsAsset_         Asset to be swapped to.
@@ -39,6 +40,7 @@ interface IUniswapV2StyleStrategy {
     function flashBorrowLiquidation(
         address lender_, 
         uint256 swapAmount_,
+        uint256 maxReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
         address fundsAsset_,

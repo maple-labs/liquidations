@@ -121,7 +121,11 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amount that is above slippage requirements
-        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 485 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 485 ether, type(uint256).max, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+
+        // Function reverts if returnAmount is larger than maxReturnAmount
+        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 485 ether, 1, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+
 
         /*************************/
         /*** First Liquidation ***/
@@ -130,7 +134,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         uint256 returnAmount1 = liquidator.getExpectedAmount(483 ether);
         assertEq(returnAmount1, 1_594_622_221102);  // $1.59m
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 483 ether, WETH, address(0), USDC, profitDestination);
+        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 483 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        517 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
@@ -148,7 +152,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         uint256 returnAmount2 = liquidator.getExpectedAmount(250 ether);
         assertEq(returnAmount2, 825_373_820446);  // $825k
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 250 ether, WETH, address(0), USDC, profitDestination);
+        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 250 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        267 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
@@ -166,7 +170,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         uint256 returnAmount3 = liquidator.getExpectedAmount(267 ether);
         assertEq(returnAmount3, 881_499_240236);  // $881k
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 267 ether, WETH, address(0), USDC, profitDestination);
+        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 267 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
@@ -187,7 +191,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
+        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, type(uint256).max, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
@@ -217,7 +221,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-            uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
+            uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
             rebalancer.swap(UNISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
         }
@@ -239,7 +243,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
+        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
@@ -307,7 +311,10 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amount that is above slippage requirements
-        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, type(uint256).max, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+
+        // Function reverts if returnAmount is larger than maxReturnAmount
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, 1, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
 
         /*************************/
         /*** First Liquidation ***/
@@ -316,7 +323,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         uint256 returnAmount1 = liquidator.getExpectedAmount(950 ether);
         assertEq(returnAmount1, 3_136_420_517695);  // $1.59m
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        1050 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -334,7 +341,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         uint256 returnAmount2 = liquidator.getExpectedAmount(950 ether);
         assertEq(returnAmount2, 3_136_420_517695);  // $825k
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, WETH,  address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        100 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -352,7 +359,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         uint256 returnAmount3 = liquidator.getExpectedAmount(100 ether);
         assertEq(returnAmount3, 330_149_528178);  // $881k
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -373,7 +380,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, type(uint256).max, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
@@ -403,7 +410,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-            sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, WETH, address(0), USDC, profitDestination);
+            sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
             rebalancer.swap(SUSHISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up 
         }
@@ -425,7 +432,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(fundsDestination2)),   0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, WETH, address(0), USDC, address(fundsDestination2));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
@@ -486,8 +493,8 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amounts that are above slippage requirements (determined with while loop)
-        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
-        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 484 ether, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, type(uint256).max, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 484 ether, type(uint256).max, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
 
         /**********************************/
         /*** Mutli-Strategy Liquidation ***/
@@ -496,8 +503,8 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         uint256 returnAmount = liquidator.getExpectedAmount(1_400 ether);
         assertEq(returnAmount, 4_622_093_394499);  // $4.62m
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, WETH, address(0), USDC, profitDestination);
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 450 ether, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
+        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 450 ether, type(uint256).max, WETH, address(0), USDC, profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -558,7 +565,7 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
         bytes memory arguments = new bytes(0);
 
-        try liquidator.liquidatePortion(1_400 ether, arguments) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
+        try liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
 
         uint256 returnAmount2 = liquidator.getExpectedAmount(1_400 ether + 1);  // Return amount for over-liquidation
 
@@ -566,9 +573,11 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
         usdc.approve(address(liquidator), returnAmount1);  // Approve for the correct amount
 
-        try liquidator.liquidatePortion(1_400 ether + 1, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
+        try liquidator.liquidatePortion(1_400 ether + 1, type(uint256).max, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
 
-        liquidator.liquidatePortion(1_400 ether, arguments);  // Successful when called with correct balance and approval
+        try liquidator.liquidatePortion(1_400 ether, returnAmount2 - 1, arguments) { assertTrue(false, "Liquidation for less than returnAmount"); } catch { }
+
+        liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments);  // Successful when called with correct balance and approval
 
         // Ending state
         assertEq(weth.balanceOf(address(liquidator)),       0);

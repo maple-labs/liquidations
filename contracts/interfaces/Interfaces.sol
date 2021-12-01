@@ -21,7 +21,7 @@ interface ILiquidatorLike {
 
     function getExpectedAmount(uint256 swapAmount_) external returns (uint256 expectedAmount_);
 
-    function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external;
+    function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external;
     
 }
 

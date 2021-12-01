@@ -13,6 +13,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
     function flashBorrowLiquidation(
         address lender_, 
         uint256 swapAmount_,
+        uint256 maxReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
         address fundsAsset_,
@@ -26,6 +27,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
 
         ILiquidatorLike(lender_).liquidatePortion(
             swapAmount_,  
+            maxReturnAmount_,
             abi.encodeWithSelector(
                 this.swap.selector, 
                 swapAmount_, 
