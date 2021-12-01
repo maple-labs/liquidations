@@ -42,7 +42,7 @@ contract Liquidator is ILiquidator {
         return IAuctioneerLike(auctioneer).getExpectedAmount(swapAmount_);
     }
 
-    function liquidatePortion(uint256 swapAmount_, bytes calldata data_) external override {
+    function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override {
         require(!_locked, "LIQ:LP:LOCKED");
 
         _locked = true;
