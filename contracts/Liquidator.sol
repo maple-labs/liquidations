@@ -14,6 +14,8 @@ contract Liquidator is ILiquidator {
     address public override fundsAsset;
     address public override owner;
 
+    bool internal _locked;
+
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_) {
         owner           = owner_;
         collateralAsset = collateralAsset_;
@@ -24,14 +26,16 @@ contract Liquidator is ILiquidator {
 
     function setAuctioneer(address auctioneer_) external override {
         require(msg.sender == owner, "LIQ:SA:NOT_OWNER");
-        auctioneer = auctioneer_;
-        emit AuctioneerSet(auctioneer_);
+
+        emit AuctioneerSet(auctioneer = auctioneer_);
     }
 
     function pullFunds(address token_, address destination_, uint256 amount_) external override {
-        require(msg.sender == owner,                                 "LIQ:PF:NOT_OWNER");
-        require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
+        require(msg.sender == owner, "LIQ:PF:NOT_OWNER");
+
         emit FundsPulled(token_, destination_, amount_);
+
+        require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
     }
 
     function getExpectedAmount(uint256 swapAmount_) public view override returns (uint256 expectedAmount_) {
@@ -39,6 +43,10 @@ contract Liquidator is ILiquidator {
     }
 
     function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override {
+        require(!_locked, "LIQ:LP:LOCKED");
+
+        _locked = true;
+
         require(ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_), "LIQ:LP:TRANSFER");
 
         msg.sender.call(data_);
@@ -46,9 +54,11 @@ contract Liquidator is ILiquidator {
         uint256 returnAmount = getExpectedAmount(swapAmount_);
         require(returnAmount <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
 
+        emit PortionLiquidated(swapAmount_, returnAmount);
+
         require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
 
-        emit PortionLiquidated(swapAmount_, returnAmount);
+        _locked = false;
     }
 
 }
