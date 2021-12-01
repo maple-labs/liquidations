@@ -7,3 +7,6 @@
 [submodule "modules/erc20-helper"]
 	path = modules/erc20-helper
 	url = https://github.com/maple-labs/erc20-helper.git
+[submodule "modules/erc20"]
+	path = modules/erc20
+	url = https://github.com/maple-labs/erc20

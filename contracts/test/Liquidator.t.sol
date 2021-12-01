@@ -2,8 +2,8 @@
 pragma solidity ^0.8.7;
 
 import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }                        from "../../modules/erc20-helper/lib/erc20/src/interfaces/IERC20.sol";
-import { MockERC20 }                     from "../../modules/erc20-helper/lib/erc20/src/test/mocks/MockERC20.sol";
+import { IERC20 }                        from "../../modules/erc20/src/interfaces/IERC20.sol";
+import { MockERC20 }                     from "../../modules/erc20/src/test/mocks/MockERC20.sol";
 
 import { Liquidator }        from "../Liquidator.sol";
 import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
