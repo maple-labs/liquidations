@@ -462,10 +462,10 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
-        sushiswapStrategy   = new SushiswapStrategy();
-        uniswapV2Strategy   = new UniswapV2Strategy();
+        auctioneer        = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
+        sushiswapStrategy = new SushiswapStrategy();
+        uniswapV2Strategy = new UniswapV2Strategy();
 
         globals.setPriceOracle(WETH, WETH_ORACLE);
         globals.setPriceOracle(USDC, USDC_ORACLE);
@@ -509,6 +509,73 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);
+    }
+
+}
+
+contract LiquidatorOTCTest is TestUtils, StateManipulations {
+
+    address public constant fundsDestination = address(5959);
+    address public constant USDC             = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant USDC_ORACLE      = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
+    address public constant WETH             = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant WETH_ORACLE      = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+
+    IERC20 constant usdc = IERC20(USDC);
+    IERC20 constant weth = IERC20(WETH);
+
+    AuctioneerMock    auctioneer;
+    Liquidator        liquidator;
+    MapleGlobalsMock  globals;
+
+    function setUp() external {
+        globals = new MapleGlobalsMock();
+
+        auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
+
+        globals.setPriceOracle(WETH, WETH_ORACLE);
+        globals.setPriceOracle(USDC, USDC_ORACLE);
+    }
+
+    function test_eoa_otc_liquidation() public {
+        erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
+
+        uint256 returnAmount1 = liquidator.getExpectedAmount(1_400 ether);
+
+        assertEq(returnAmount1, 4_622_093_394499);
+
+        erc20_mint(USDC, 9, address(this), returnAmount1);
+
+        // Starting state
+        assertEq(weth.balanceOf(address(liquidator)),       1_400 ether);
+        assertEq(weth.balanceOf(address(this)),             0);
+        assertEq(usdc.balanceOf(address(fundsDestination)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),       0);
+        assertEq(usdc.balanceOf(address(this)),             returnAmount1);
+
+        usdc.approve(address(liquidator), returnAmount1 - 1);  // Approve for an amount less than the expected amount
+
+        bytes memory arguments = new bytes(0);
+
+        try liquidator.liquidatePortion(1_400 ether, arguments) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
+
+        uint256 returnAmount2 = liquidator.getExpectedAmount(1_400 ether + 1);  // Return amount for over-liquidation
+
+        assertEq(returnAmount2, returnAmount1);  // Small enough difference that return amounts are equal
+
+        usdc.approve(address(liquidator), returnAmount1);  // Approve for the correct amount
+
+        try liquidator.liquidatePortion(1_400 ether + 1, arguments) { assertTrue(false, "Liquidation for more than balance of liquidator"); } catch { }
+
+        liquidator.liquidatePortion(1_400 ether, arguments);  // Successful when called with correct balance and approval
+
+        // Ending state
+        assertEq(weth.balanceOf(address(liquidator)),       0);
+        assertEq(weth.balanceOf(address(this)),             1_400 ether);
+        assertEq(usdc.balanceOf(address(fundsDestination)), returnAmount1);
+        assertEq(usdc.balanceOf(address(liquidator)),       0);
+        assertEq(usdc.balanceOf(address(this)),             0);
     }
 
 }
