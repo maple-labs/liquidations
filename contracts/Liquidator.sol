@@ -17,6 +17,15 @@ contract Liquidator is ILiquidator {
     bool internal _locked;
 
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_) {
+        require(
+            owner_           != address(0) && 
+            collateralAsset_ != address(0) && 
+            fundsAsset_      != address(0) && 
+            auctioneer_      != address(0) && 
+            destination_     != address(0), 
+            "LIQ:C:INVALID_PARAMETER"
+        );
+        
         owner           = owner_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
