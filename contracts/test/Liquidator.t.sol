@@ -13,6 +13,20 @@ import { Owner } from "./accounts/Owner.sol";
 
 import { AuctioneerMock, MapleGlobalsMock, Rebalancer } from "./mocks/Mocks.sol";
 
+contract LiquidatorConstructorTest is TestUtils {
+
+    function test_constructor_data_validation() external {
+        try new Liquidator(address(0), address(1), address(1), address(1), address(1)) { assertTrue(false, "Zero owner"); }           catch {}
+        try new Liquidator(address(1), address(0), address(1), address(1), address(1)) { assertTrue(false, "Zero collateralAsset"); } catch {}
+        try new Liquidator(address(1), address(1), address(0), address(1), address(1)) { assertTrue(false, "Zero fundsAsset"); }      catch {}
+        try new Liquidator(address(1), address(1), address(1), address(0), address(1)) { assertTrue(false, "Zero auctioneer"); }      catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(0)) { assertTrue(false, "Zero destination"); }     catch {}
+
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1)) {} catch { assertTrue(false, "Non-zero for all addresses"); }
+    }
+    
+}
+
 contract LiquidatorAdminTest is TestUtils {
 
     address auctioneer = address(111);
