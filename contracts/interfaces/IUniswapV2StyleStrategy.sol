@@ -38,7 +38,7 @@ interface IUniswapV2StyleStrategy {
      * @param profitDestination_  Address that remaining fudns are sent to.
      */
     function flashBorrowLiquidation(
-        address lender_, 
+        address lender_,
         uint256 swapAmount_,
         uint256 maxReturnAmount_,
         address collateralAsset_,

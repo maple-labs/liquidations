@@ -11,29 +11,29 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
     address public constant override ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
 
     function flashBorrowLiquidation(
-        address lender_, 
+        address lender_,
         uint256 swapAmount_,
         uint256 maxReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
         address fundsAsset_,
         address profitDestination_
-    ) 
-        external override 
+    )
+        external override
     {
         uint256 repaymentAmount = ILiquidatorLike(lender_).getExpectedAmount(swapAmount_);
 
         ERC20Helper.approve(fundsAsset_, lender_, repaymentAmount);
 
         ILiquidatorLike(lender_).liquidatePortion(
-            swapAmount_,  
+            swapAmount_,
             maxReturnAmount_,
             abi.encodeWithSelector(
-                this.swap.selector, 
-                swapAmount_, 
-                repaymentAmount, 
-                collateralAsset_, 
-                middleAsset_, 
+                this.swap.selector,
+                swapAmount_,
+                repaymentAmount,
+                collateralAsset_,
+                middleAsset_,
                 fundsAsset_,
                 profitDestination_
             )
@@ -51,7 +51,7 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
         external override
     {
         require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UniswapV2Strategy:WRONG_COLLATERAL_AMT");
-        
+
         ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_);
 
         bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);

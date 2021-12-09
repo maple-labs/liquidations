@@ -4,7 +4,7 @@ pragma solidity 0.8.7;
 interface IAuctioneerLike {
 
     function getExpectedAmount(uint256 swapAmount_) external view returns (uint256 expectedAmount_);
-    
+
 }
 
 interface IERC20Like {
@@ -22,17 +22,19 @@ interface ILiquidatorLike {
     function getExpectedAmount(uint256 swapAmount_) external returns (uint256 expectedAmount_);
 
     function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external;
-    
+
 }
 
 interface IMapleGlobalsLike {
 
     function getLatestPrice(address asset_) external view returns (uint256 price_);
 
+    function protocolPaused() external view returns (bool protocolPaused_);
+
 }
 
 interface IOracleLike {
-    
+
     function latestRoundData() external view returns (
         uint80  roundId,
         int256  answer,
