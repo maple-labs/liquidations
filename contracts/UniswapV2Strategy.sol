@@ -6,7 +6,7 @@ import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 import { IERC20Like, ILiquidatorLike, IUniswapRouterLike } from "./interfaces/Interfaces.sol";
 import { IUniswapV2StyleStrategy }                         from "./interfaces/IUniswapV2StyleStrategy.sol";
 
-contract UniswapV2Strategy is IUniswapV2StyleStrategy {
+contract UV2S is IUniswapV2StyleStrategy {
 
     address public constant override ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
 
@@ -50,7 +50,7 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
     )
         external override
     {
-        require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UniswapV2Strategy:WRONG_COLLATERAL_AMT");
+        require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UV2S:WRONG_COLLATERAL_AMT");
 
         ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_);
 
@@ -71,7 +71,7 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
             block.timestamp
         );
 
-        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20Like(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "UniswapV2Strategy:PROFIT_TRANSFER");
+        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20Like(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "UV2S:PROFIT_TRANSFER");
     }
 
 }
