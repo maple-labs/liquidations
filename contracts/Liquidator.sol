@@ -15,7 +15,9 @@ contract Liquidator is ILiquidator {
     address public override globals;
     address public override owner;
 
-    bool internal _locked;
+    uint256 private constant NOT_LOCKED = 0;
+    uint256 private constant LOCKED = 1;
+    uint256 internal _locked;
 
     /*****************/
     /*** Modifiers ***/
@@ -27,29 +29,21 @@ contract Liquidator is ILiquidator {
     }
 
     modifier lock() {
-        require(!_locked, "LIQ:LOCKED");
-        _locked = true;
+        require(_locked == NOT_LOCKED, "LIQ:LOCKED");
+        _locked = LOCKED;
         _;
-        _locked = false;
+        _locked = NOT_LOCKED;
     }
 
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
-        require(
-            owner_           != address(0) &&
-            collateralAsset_ != address(0) &&
-            fundsAsset_      != address(0) &&
-            auctioneer_      != address(0) &&
-            destination_     != address(0) &&
-            globals_         != address(0),
-            "LIQ:C:INVALID_PARAMETER"
-        );
+        require((owner = owner_) != address(0),                          "LIQ:C:INVALID_OWNER");
+        require((collateralAsset = collateralAsset_) != address(0),      "LIQ:C:INVALID_COL_ASSET");
+        require((fundsAsset = fundsAsset_) != address(0),                "LIQ:C:INVALID_FUNDS_ASSET");
+        require((destination = destination_) != address(0),              "LIQ:C:INVALID_DEST");
+        require(!IMapleGlobalsLike(globals = globals_).protocolPaused(), "LIQ:C:INVALID_GLOBALS");
 
-        owner           = owner_;
-        collateralAsset = collateralAsset_;
-        fundsAsset      = fundsAsset_;
-        auctioneer      = auctioneer_;
-        destination     = destination_;
-        globals         = globals_;
+        // NOTE: Auctioneer of zero a valid, since it is starting the contract off in a paused state.
+        auctioneer = auctioneer_;
     }
 
     function setAuctioneer(address auctioneer_) external override {
