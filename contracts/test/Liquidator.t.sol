@@ -33,8 +33,13 @@ contract LiquidatorConstructorTest is TestUtils {
 
 contract LiquidatorAdminTest is TestUtils {
 
+<<<<<<< HEAD
     address internal auctioneer = address(111);
     address internal globals    = address(new MapleGlobalsMock());
+=======
+    address auctioneer = address(111);
+    address globals    = address(new MapleGlobalsMock());
+>>>>>>> f875052 (fix: input validation on constructor (c4 #36))
 
     Liquidator internal liquidator;
     MockERC20  internal collateralAsset;
