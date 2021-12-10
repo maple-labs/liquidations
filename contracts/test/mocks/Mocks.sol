@@ -28,10 +28,10 @@ contract AuctioneerMock {
             swapAmount_
                 * IMapleGlobalsLike(globals).getLatestPrice(collateralAsset)  // Convert from `fromAsset` value.
                 * 10 ** IERC20Like(fundsAsset).decimals()                     // Convert to `toAsset` decimal precision.
-                * (10_000 - allowedSlippage)                                  // Multiply by allowed slippage basis points
+                * (10_000 - allowedSlippage)                                  // Multiply by allowed slippage basis points.
                 / IMapleGlobalsLike(globals).getLatestPrice(fundsAsset)       // Convert to `toAsset` value.
                 / 10 ** IERC20Like(collateralAsset).decimals()                // Convert from `fromAsset` decimal precision.
-                / 10_000;                                                     // Divide basis points for slippage
+                / 10_000;                                                     // Divide basis points for slippage.
 
         uint256 minRatioAmount = swapAmount_ * minRatio / 10 ** IERC20Like(collateralAsset).decimals();
 
@@ -45,15 +45,15 @@ contract MapleGlobalsMock {
 
     bool public protocolPaused;
 
-    mapping (address => address) public oracleFor;
+    mapping(address => address) public oracleFor;
 
-    function getLatestPrice(address asset) external view returns (uint256) {
-        (, int256 price,,,) = IOracleLike(oracleFor[asset]).latestRoundData();
+    function getLatestPrice(address asset_) external view returns (uint256 price_) {
+        ( , int256 price, , , ) = IOracleLike(oracleFor[asset_]).latestRoundData();
         return uint256(price);
     }
 
-    function setPriceOracle(address asset, address oracle) external {
-        oracleFor[asset] = oracle;
+    function setPriceOracle(address asset_, address oracle_) external {
+        oracleFor[asset_] = oracle_;
     }
 
     function setProtocolPaused(bool paused_) external {
@@ -84,7 +84,9 @@ contract Rebalancer is StateManipulations {
         path[0] = address(fromAsset_);
         path[1] = hasMiddleAsset ? middleAsset_ : toAsset_;
 
-        if (hasMiddleAsset) path[2] = toAsset_;
+        if (hasMiddleAsset) {
+            path[2] = toAsset_;
+        }
 
         IUniswapRouterLike(router_).swapTokensForExactTokens(
             amountOut_,
@@ -110,7 +112,6 @@ contract ReentrantLiquidator {
     {
         lender     = lender_;
         swapAmount = swapAmount_;
-
 
         ILiquidatorLike(lender_).liquidatePortion(
             swapAmount_,
