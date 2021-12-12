@@ -36,11 +36,11 @@ interface IMapleGlobalsLike {
 interface IOracleLike {
 
     function latestRoundData() external view returns (
-        uint80  roundId,
-        int256  answer,
-        uint256 startedAt,
-        uint256 updatedAt,
-        uint80  answeredInRound
+        uint80  roundId_,
+        int256  answer_,
+        uint256 startedAt_,
+        uint256 updatedAt_,
+        uint80  answeredInRound_
     );
 
 }
@@ -48,19 +48,19 @@ interface IOracleLike {
 interface IUniswapRouterLike {
 
     function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external returns (uint256[] memory amounts);
+        uint256 amountIn_,
+        uint256 amountOutMin_,
+        address[] calldata path_,
+        address to_,
+        uint256 deadline_
+    ) external returns (uint256[] memory amounts_);
 
     function swapTokensForExactTokens(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external returns (uint[] memory amounts);
+        uint256 amountOut_,
+        uint256 amountInMax_,
+        address[] calldata path_,
+        address to_,
+        uint256 deadline_
+    ) external returns (uint[] memory amounts_);
 
 }
