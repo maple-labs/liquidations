@@ -15,15 +15,16 @@ import { AuctioneerMock, MapleGlobalsMock, Rebalancer, ReentrantLiquidator } fro
 
 contract LiquidatorConstructorTest is TestUtils {
 
-    function test_constructor_data_validation() external {
-        try new Liquidator(address(0), address(1), address(1), address(1), address(1), address(1)) { assertTrue(false, "Zero owner"); }           catch {}
-        try new Liquidator(address(1), address(0), address(1), address(1), address(1), address(1)) { assertTrue(false, "Zero collateralAsset"); } catch {}
-        try new Liquidator(address(1), address(1), address(0), address(1), address(1), address(1)) { assertTrue(false, "Zero fundsAsset"); }      catch {}
-        try new Liquidator(address(1), address(1), address(1), address(0), address(1), address(1)) { assertTrue(false, "Zero auctioneer"); }      catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(0), address(1)) { assertTrue(false, "Zero destination"); }     catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(0)) { assertTrue(false, "Zero globals"); }     catch {}
+    function test_constructor() external {
+        address globals = address(new MapleGlobalsMock());
 
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(1)) {} catch { assertTrue(false, "Non-zero for all addresses"); }
+        try new Liquidator(address(0), address(1), address(1), address(1), address(1), globals)    { assertTrue(false, "Zero owner"); }           catch {}
+        try new Liquidator(address(1), address(0), address(1), address(1), address(1), globals)    { assertTrue(false, "Zero collateralAsset"); } catch {}
+        try new Liquidator(address(1), address(1), address(0), address(1), address(1), globals)    { assertTrue(false, "Zero fundsAsset"); }      catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(0), globals)    { assertTrue(false, "Zero destination"); }     catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(0)) { assertTrue(false, "Zero globals"); }         catch {}
+
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1), globals) {} catch { assertTrue(false, "Non-zero for all addresses"); }
     }
 
 }
@@ -31,7 +32,7 @@ contract LiquidatorConstructorTest is TestUtils {
 contract LiquidatorAdminTest is TestUtils {
 
     address auctioneer = address(111);
-    address globals    = address(222);
+    address globals    = address(new MapleGlobalsMock());
 
     Liquidator       liquidator;
     MockERC20        collateralAsset;
