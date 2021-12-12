@@ -34,13 +34,14 @@ contract Liquidator is ILiquidator {
     }
 
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
-        require((owner = owner_) != address(0),                          "LIQ:C:INVALID_OWNER");
-        require((collateralAsset = collateralAsset_) != address(0),      "LIQ:C:INVALID_COL_ASSET");
-        require((fundsAsset = fundsAsset_) != address(0),                "LIQ:C:INVALID_FUNDS_ASSET");
-        require((destination = destination_) != address(0),              "LIQ:C:INVALID_DEST");
+        require((owner           = owner_)           != address(0), "LIQ:C:INVALID_OWNER");
+        require((collateralAsset = collateralAsset_) != address(0), "LIQ:C:INVALID_COL_ASSET");
+        require((fundsAsset      = fundsAsset_)      != address(0), "LIQ:C:INVALID_FUNDS_ASSET");
+        require((destination     = destination_)     != address(0), "LIQ:C:INVALID_DEST");
+
         require(!IMapleGlobalsLike(globals = globals_).protocolPaused(), "LIQ:C:INVALID_GLOBALS");
 
-        // NOTE: Auctioneer of zero a valid, since it is starting the contract off in a paused state.
+        // NOTE: Auctioneer of zero is valid, since it is starting the contract off in a paused state.
         auctioneer = auctioneer_;
     }
 
