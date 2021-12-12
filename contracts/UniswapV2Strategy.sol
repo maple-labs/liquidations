@@ -50,7 +50,6 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
     )
         external override
     {
-        require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "UV2S:WRONG_COLLATERAL_AMT");
         require(ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_),           "UV2S:APPROVE_FAILED");
 
         bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);
