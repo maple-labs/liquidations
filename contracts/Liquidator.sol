@@ -12,13 +12,14 @@ contract Liquidator is ILiquidator {
     uint256 private constant LOCKED     = 1;
     
     uint256 internal _locked;
+    
+    address public override immutable collateralAsset;
+    address public override immutable destination;
+    address public override immutable fundsAsset;
+    address public override immutable globals;
+    address public override immutable owner;
 
     address public override auctioneer;
-    address public override collateralAsset;
-    address public override destination;
-    address public override fundsAsset;
-    address public override globals;
-    address public override owner;
 
     /*****************/
     /*** Modifiers ***/
