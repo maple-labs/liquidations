@@ -39,6 +39,8 @@ contract AuctioneerMock {
     }
 }
 
+contract EmptyContract {}
+
 contract MapleGlobalsMock {
 
     bool public protocolPaused;

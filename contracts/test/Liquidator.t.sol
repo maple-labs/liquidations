@@ -11,18 +11,20 @@ import { SushiswapStrategy } from "../SushiswapStrategy.sol";
 
 import { Owner } from "./accounts/Owner.sol";
 
-import { AuctioneerMock, MapleGlobalsMock, Rebalancer, ReentrantLiquidator } from "./mocks/Mocks.sol";
+import { AuctioneerMock, EmptyContract, MapleGlobalsMock, Rebalancer, ReentrantLiquidator } from "./mocks/Mocks.sol";
 
 contract LiquidatorConstructorTest is TestUtils {
 
     function test_constructor() external {
-        address globals = address(new MapleGlobalsMock());
+        address globals       = address(new MapleGlobalsMock());
+        address emptyContract = address(new EmptyContract());
 
-        try new Liquidator(address(0), address(1), address(1), address(1), address(1), globals)    { assertTrue(false, "Zero owner"); }           catch {}
-        try new Liquidator(address(1), address(0), address(1), address(1), address(1), globals)    { assertTrue(false, "Zero collateralAsset"); } catch {}
-        try new Liquidator(address(1), address(1), address(0), address(1), address(1), globals)    { assertTrue(false, "Zero fundsAsset"); }      catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(0), globals)    { assertTrue(false, "Zero destination"); }     catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(0)) { assertTrue(false, "Zero globals"); }         catch {}
+        try new Liquidator(address(0), address(1), address(1), address(1), address(1), globals)       { assertTrue(false, "Zero owner"); }           catch {}
+        try new Liquidator(address(1), address(0), address(1), address(1), address(1), globals)       { assertTrue(false, "Zero collateralAsset"); } catch {}
+        try new Liquidator(address(1), address(1), address(0), address(1), address(1), globals)       { assertTrue(false, "Zero fundsAsset"); }      catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(0), globals)       { assertTrue(false, "Zero destination"); }     catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(0))    { assertTrue(false, "Zero globals"); }         catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1), emptyContract) { assertTrue(false, "Invalid globals"); }      catch {}
 
         try new Liquidator(address(1), address(1), address(1), address(1), address(1), globals) {} catch { assertTrue(false, "Non-zero for all addresses"); }
     }
@@ -700,7 +702,7 @@ contract ReentrantLiquidatorTest is TestUtils, StateManipulations {
         globals = new MapleGlobalsMock();
 
         auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination1, address(globals));
+        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
 
         reentrantStrategy = new ReentrantLiquidator();
 
