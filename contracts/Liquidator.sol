@@ -8,14 +8,17 @@ import { IAuctioneerLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol"
 
 contract Liquidator is ILiquidator {
 
+    uint256 private constant NOT_LOCKED = 0;
+    uint256 private constant LOCKED     = 1;
+    
+    uint256 internal _locked;
+
     address public override auctioneer;
     address public override collateralAsset;
     address public override destination;
     address public override fundsAsset;
     address public override globals;
     address public override owner;
-
-    bool internal _locked;
 
     /*****************/
     /*** Modifiers ***/
@@ -27,10 +30,10 @@ contract Liquidator is ILiquidator {
     }
 
     modifier lock() {
-        require(!_locked, "LIQ:LOCKED");
-        _locked = true;
+        require(_locked == NOT_LOCKED, "LIQ:LOCKED");
+        _locked = LOCKED;
         _;
-        _locked = false;
+        _locked = NOT_LOCKED;
     }
 
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
