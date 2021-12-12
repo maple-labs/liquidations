@@ -10,13 +10,13 @@ interface IUniswapV2StyleStrategy {
 
     /**
      * @dev Function that performs a `swapExactTokensForTokens` swap on a UniswapV2-style AMM, sending the remaining funds
-     * @dev from the flashloan to the specified `profitDestination`.
+     * @dev from the flash loan to the specified `profitDestination`.
      * @param swapAmount_         Amount of `collateralAsset_` to be swapped.
      * @param minReturnAmount_    Minimum amount of `fundsAsset_` to be returned from the swap.
      * @param collateralAsset_    Asset that is swapped from.
      * @param middleAsset_        Optional middle asset to add to `path` of the AMM.
      * @param fundsAsset_         Asset to be swapped to.
-     * @param profitDestination_  Address that remaining fudns are sent to.
+     * @param profitDestination_  Address that remaining funds are sent to.
      */
     function swap(
         uint256 swapAmount_,
@@ -29,13 +29,13 @@ interface IUniswapV2StyleStrategy {
 
     /**
      * @dev Function that calls `liquidatePortion` in the liquidator, flash-borrowing funds to swap.
-     * @param lender_             Address that will flashloan `swapAmount_` of `collateralAsset`
+     * @param lender_             Address that will flash loan `swapAmount_` of `collateralAsset`
      * @param swapAmount_         Amount of `collateralAsset_` to be swapped.
      * @param maxReturnAmount_    Max amount of `fundsAsset` that can be returned to the liquidator contract.
      * @param collateralAsset_    Asset that is flash-borrowed.
      * @param middleAsset_        Optional middle asset to add to `path` of the AMM.
      * @param fundsAsset_         Asset to be swapped to.
-     * @param profitDestination_  Address that remaining fudns are sent to.
+     * @param profitDestination_  Address that remaining funds are sent to.
      */
     function flashBorrowLiquidation(
         address lender_,
