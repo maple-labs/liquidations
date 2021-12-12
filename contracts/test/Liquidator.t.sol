@@ -596,7 +596,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
 
 contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
-    address public constant fun dsDestination = address(5959);
+    address public constant fundsDestination = address(5959);
     address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant USDC_ORACLE      = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
     address public constant WETH             = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
