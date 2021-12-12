@@ -59,25 +59,25 @@ contract LiquidatorAdminTest is TestUtils {
     }
 
     function test_pullFunds() external {
-        address fundsDestination1 = address(1);
+        address fundsDestination = address(1);
 
         collateralAsset.mint(address(liquidator), 10 ether);
         fundsAsset.mint(address(liquidator),      20 ether);
 
-        assertEq(collateralAsset.balanceOf(address(liquidator)),        10 ether);
-        assertEq(collateralAsset.balanceOf(address(fundsDestination1)), 0);
-        assertEq(fundsAsset.balanceOf(address(liquidator)),             20 ether);
-        assertEq(fundsAsset.balanceOf(address(fundsDestination1)),      0);
+        assertEq(collateralAsset.balanceOf(address(liquidator)),       10 ether);
+        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 0);
+        assertEq(fundsAsset.balanceOf(address(liquidator)),            20 ether);
+        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      0);
 
-        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination1), 10 ether));
-        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination1), 20 ether));
-        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination1), 10 ether));
-        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination1), 20 ether));
+        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
+        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
+        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
+        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
 
-        assertEq(collateralAsset.balanceOf(address(liquidator)),        0);
-        assertEq(collateralAsset.balanceOf(address(fundsDestination1)), 10 ether);
-        assertEq(fundsAsset.balanceOf(address(liquidator)),             0);
-        assertEq(fundsAsset.balanceOf(address(fundsDestination1)),      20 ether);
+        assertEq(collateralAsset.balanceOf(address(liquidator)),       0);
+        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 10 ether);
+        assertEq(fundsAsset.balanceOf(address(liquidator)),            0);
+        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      20 ether);
     }
 
 }
@@ -510,7 +510,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
     IERC20 internal constant usdc = IERC20(USDC);
     IERC20 internal constant weth = IERC20(WETH);
 
-    address internal constant fundsDestination1 = address(5858);  // Address that collects expected funds from swaps
+    address internal constant fundsDestination  = address(5858);  // Address that collects expected funds from swaps
     address internal constant profitDestination = address(1122);  // Address that collects profits from swaps
 
     AuctioneerMock    internal auctioneer;
@@ -542,7 +542,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         globals = new MapleGlobalsMock();
 
         auctioneer        = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination1, address(globals));
+        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
         sushiswapStrategy = new SushiswapStrategy();
         uniswapV2Strategy = new UniswapV2Strategy();
 
@@ -559,7 +559,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
 
         assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(fundsDestination1)), 0);
+        assertEq(usdc.balanceOf(address(fundsDestination)),  0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
@@ -582,9 +582,9 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
 
-        assertWithinDiff(usdc.balanceOf(address(fundsDestination1)), returnAmount, 1);
+        assertWithinDiff(usdc.balanceOf(address(fundsDestination)), returnAmount, 1);
 
-        assertEq(usdc.balanceOf(address(liquidator)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),        0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);
@@ -594,11 +594,11 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
 
 contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
-    address public constant fundsDestination1 = address(5959);
-    address public constant USDC              = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE       = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH              = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE       = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+    address public constant fundsDestination = address(5959);
+    address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant USDC_ORACLE      = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
+    address public constant WETH             = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant WETH_ORACLE      = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
 
     IERC20 internal constant usdc = IERC20(USDC);
     IERC20 internal constant weth = IERC20(WETH);
@@ -630,7 +630,7 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
         globals = new MapleGlobalsMock();
 
         auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination1, address(globals));
+        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
 
         globals.setPriceOracle(WETH, WETH_ORACLE);
         globals.setPriceOracle(USDC, USDC_ORACLE);
@@ -646,11 +646,11 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
         erc20_mint(USDC, 9, address(this), returnAmount1);
 
         // Starting state
-        assertEq(weth.balanceOf(address(liquidator)),        1_400 ether);
-        assertEq(weth.balanceOf(address(this)),              0);
-        assertEq(usdc.balanceOf(address(fundsDestination1)), 0);
-        assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(this)),              returnAmount1);
+        assertEq(weth.balanceOf(address(liquidator)),       1_400 ether);
+        assertEq(weth.balanceOf(address(this)),             0);
+        assertEq(usdc.balanceOf(address(fundsDestination)), 0);
+        assertEq(usdc.balanceOf(address(liquidator)),       0);
+        assertEq(usdc.balanceOf(address(this)),             returnAmount1);
 
         usdc.approve(address(liquidator), returnAmount1 - 1);  // Approve for an amount less than the expected amount
 
@@ -671,22 +671,22 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
         liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments);  // Successful when called with correct balance and approval
 
         // Ending state
-        assertEq(weth.balanceOf(address(liquidator)),        0);
-        assertEq(weth.balanceOf(address(this)),              1_400 ether);
-        assertEq(usdc.balanceOf(address(fundsDestination1)), returnAmount1);
-        assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(this)),              0);
+        assertEq(weth.balanceOf(address(liquidator)),       0);
+        assertEq(weth.balanceOf(address(this)),             1_400 ether);
+        assertEq(usdc.balanceOf(address(fundsDestination)), returnAmount1);
+        assertEq(usdc.balanceOf(address(liquidator)),       0);
+        assertEq(usdc.balanceOf(address(this)),             0);
     }
 
 }
 
 contract ReentrantLiquidatorTest is TestUtils, StateManipulations {
 
-    address public constant fundsDestination1 = address(5959);
-    address public constant USDC              = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE       = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH              = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE       = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+    address public constant fundsDestination = address(5959);
+    address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant USDC_ORACLE      = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
+    address public constant WETH             = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant WETH_ORACLE      = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
 
     IERC20 internal constant usdc = IERC20(USDC);
     IERC20 internal constant weth = IERC20(WETH);
