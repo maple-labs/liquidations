@@ -45,6 +45,11 @@ interface ILiquidator {
     function fundsAsset() external view returns (address);
 
     /**
+     * @dev Getter function that returns `gloabals`
+     */
+    function globals() external view returns (address);
+
+    /**
      * @dev Getter function that returns `owner`
      */
     function owner() external view returns (address);
@@ -83,5 +88,5 @@ interface ILiquidator {
      * @param data_            ABI-encoded arguments to be used in the low-level call to perform step 2.
      */
     function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external;
-    
+
 }

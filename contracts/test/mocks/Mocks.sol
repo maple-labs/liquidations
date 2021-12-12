@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.7;
 
-import { IERC20Like, IMapleGlobalsLike, IOracleLike, IUniswapRouterLike } from "../../interfaces/Interfaces.sol";
+import { IERC20Like, IMapleGlobalsLike, IOracleLike, IUniswapRouterLike, ILiquidatorLike } from "../../interfaces/Interfaces.sol";
 
 import { StateManipulations } from "../../../modules/contract-test-utils/contracts/test.sol";
 
@@ -24,7 +24,7 @@ contract AuctioneerMock {
     }
 
     function getExpectedAmount(uint256 swapAmount_) public view returns (uint256 returnAmount_) {
-        uint256 oracleAmount = 
+        uint256 oracleAmount =
             swapAmount_
                 * IMapleGlobalsLike(globals).getLatestPrice(collateralAsset)  // Convert from `fromAsset` value.
                 * 10 ** IERC20Like(fundsAsset).decimals()                     // Convert to `toAsset` decimal precision.
@@ -32,7 +32,7 @@ contract AuctioneerMock {
                 / IMapleGlobalsLike(globals).getLatestPrice(fundsAsset)       // Convert to `toAsset` value.
                 / 10 ** IERC20Like(collateralAsset).decimals()                // Convert from `fromAsset` decimal precision.
                 / 10_000;                                                     // Divide basis points for slippage
-        
+
         uint256 minRatioAmount = swapAmount_ * minRatio / 10 ** IERC20Like(collateralAsset).decimals();
 
         return oracleAmount > minRatioAmount ? oracleAmount : minRatioAmount;
@@ -40,6 +40,8 @@ contract AuctioneerMock {
 }
 
 contract MapleGlobalsMock {
+
+    bool public protocolPaused;
 
     mapping (address => address) public oracleFor;
 
@@ -50,6 +52,10 @@ contract MapleGlobalsMock {
 
     function setPriceOracle(address asset, address oracle) external {
         oracleFor[asset] = oracle;
+    }
+
+    function setProtocolPaused(bool paused_) external {
+        protocolPaused = paused_;
     }
 
 }
@@ -87,4 +93,33 @@ contract Rebalancer is StateManipulations {
         );
     }
 
+}
+
+contract ReentrantLiquidator {
+
+    address lender;
+    uint256 swapAmount;
+
+    function flashBorrowLiquidation(
+        address lender_,
+        uint256 swapAmount_
+    )
+        external
+    {
+        lender     = lender_;
+        swapAmount = swapAmount_;
+
+
+        ILiquidatorLike(lender_).liquidatePortion(
+            swapAmount_,
+            type(uint256).max,
+            abi.encodeWithSelector(
+                this.reenter.selector
+            )
+        );
+    }
+
+    function reenter() external {
+        ILiquidatorLike(lender).liquidatePortion(swapAmount, type(uint256).max, new bytes(0));
+    }
 }

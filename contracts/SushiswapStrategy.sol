@@ -11,29 +11,29 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
     address public constant override ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     function flashBorrowLiquidation(
-        address lender_, 
+        address lender_,
         uint256 swapAmount_,
         uint256 maxReturnAmount_,
         address collateralAsset_,
         address middleAsset_,
         address fundsAsset_,
         address profitDestination_
-    ) 
-        external override 
+    )
+        external override
     {
         uint256 repaymentAmount = ILiquidatorLike(lender_).getExpectedAmount(swapAmount_);
 
         ERC20Helper.approve(fundsAsset_, lender_, repaymentAmount);
 
         ILiquidatorLike(lender_).liquidatePortion(
-            swapAmount_,  
+            swapAmount_,
             maxReturnAmount_,
             abi.encodeWithSelector(
-                this.swap.selector, 
-                swapAmount_, 
-                repaymentAmount, 
-                collateralAsset_, 
-                middleAsset_, 
+                this.swap.selector,
+                swapAmount_,
+                repaymentAmount,
+                collateralAsset_,
+                middleAsset_,
                 fundsAsset_,
                 profitDestination_
             )
@@ -51,7 +51,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
         external override
     {
         require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "SushiswapStrategy:WRONG_COLLATERAL_AMT");
-        
+
         ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_);
 
         bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);
