@@ -51,6 +51,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
         external override
     {
         require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "SSS:WRONG_COLLATERAL_AMT");
+
         ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_);
 
         bool hasMiddleAsset = middleAsset_ != fundsAsset_ && middleAsset_ != address(0);
