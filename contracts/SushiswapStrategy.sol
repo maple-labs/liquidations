@@ -68,7 +68,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
             minReturnAmount_,
             path,
             address(this),
-            block.timestamp
+            type(uint256).max
         );
 
         require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20Like(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "SSS:PROFIT_TRANSFER");
