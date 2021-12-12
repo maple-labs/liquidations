@@ -50,7 +50,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
     )
         external override
     {
-        require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "SushiswapStrategy:WRONG_COLLATERAL_AMT");
+        require(IERC20Like(collateralAsset_).balanceOf(address(this)) == swapAmount_, "SSS:WRONG_COLLATERAL_AMT");
 
         ERC20Helper.approve(collateralAsset_, ROUTER, swapAmount_);
 
@@ -71,7 +71,7 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
             block.timestamp
         );
 
-        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20Like(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "SushiswapStrategy:PROFIT_TRANSFER");
+        require(ERC20Helper.transfer(fundsAsset_, profitDestination_, IERC20Like(fundsAsset_).balanceOf(address(this)) - minReturnAmount_), "SSS:PROFIT_TRANSFER");
     }
 
 }
