@@ -31,7 +31,7 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
         address flashLender_,
         uint256 collateralBorrowed_,
         uint256 maxReturnFunds_,
-        uint256 minFundsProfit_
+        uint256 minFundsProfit_,
         address collateralAsset_,
         address middleAsset_,
         address fundsAsset_,
