@@ -6,8 +6,8 @@ import { IERC20 }                        from "../../modules/erc20/src/interface
 import { MockERC20 }                     from "../../modules/erc20/src/test/mocks/MockERC20.sol";
 
 import { Liquidator }        from "../Liquidator.sol";
-import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
 import { SushiswapStrategy } from "../SushiswapStrategy.sol";
+import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
 
 import { Owner } from "./accounts/Owner.sol";
 
@@ -175,7 +175,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
         assertEq(weth.balanceOf(address(liquidator)),        517 ether);
         assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(fundsDestination1)),  returnAmount1);
+        assertEq(usdc.balanceOf(address(fundsDestination1)), returnAmount1);
         assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 13_001643);
 

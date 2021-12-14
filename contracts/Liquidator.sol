@@ -8,8 +8,8 @@ import { IAuctioneerLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol"
 
 contract Liquidator is ILiquidator {
 
-    uint256 private constant NOT_LOCKED = 0;
-    uint256 private constant LOCKED     = 1;
+    uint256 private constant NOT_LOCKED = uint256(0);
+    uint256 private constant LOCKED     = uint256(1);
     
     uint256 internal _locked;
     
@@ -67,16 +67,20 @@ contract Liquidator is ILiquidator {
         return IAuctioneerLike(auctioneer).getExpectedAmount(swapAmount_);
     }
 
-    function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external whenProtocolNotPaused lock override {
-        require(ERC20Helper.transfer(collateralAsset, msg.sender, swapAmount_), "LIQ:LP:TRANSFER");
+    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
+        // Transfer a requested amount of collateralAsset to the borrwer.
+        require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
 
+        // Perform a low-level call to msg.sender, allowing a swap strategy to be executed with the transferred collateral.
         msg.sender.call(data_);
 
-        uint256 returnAmount = getExpectedAmount(swapAmount_);
+        // Calculate the amount of fundsAsset required based on the amount of collateralAsset borrowed.
+        uint256 returnAmount = getExpectedAmount(collateralAmount_);
         require(returnAmount <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
 
-        emit PortionLiquidated(swapAmount_, returnAmount);
+        emit PortionLiquidated(collateralAmount_, returnAmount);
 
+        // Pull required amount of fundsAsset from the borrower, if this amount of funds cannot be recovered atomically, revert.
         require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
     }
 
