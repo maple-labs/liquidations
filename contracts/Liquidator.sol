@@ -67,18 +67,18 @@ contract Liquidator is ILiquidator {
         return IAuctioneerLike(auctioneer).getExpectedAmount(swapAmount_);
     }
 
-    function liquidatePortion(uint256 collateralBorrowed_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
+    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
         // Transfer a requested amount of collateralAsset to the borrwer.
-        require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralBorrowed_), "LIQ:LP:TRANSFER");
+        require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
 
         // Perform a low-level call to msg.sender, allowing a swap strategy to be executed with the transferred collateral.
         msg.sender.call(data_);
 
         // Calculate the amount of fundsAsset required based on the amount of collateralAsset borrowed.
-        uint256 returnAmount = getExpectedAmount(collateralBorrowed_);
+        uint256 returnAmount = getExpectedAmount(collateralAmount_);
         require(returnAmount <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
 
-        emit PortionLiquidated(collateralBorrowed_, returnAmount);
+        emit PortionLiquidated(collateralAmount_, returnAmount);
 
         // Pull required amount of fundsAsset from the borrower, if this amount of funds cannot be recovered atomically, revert.
         require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
