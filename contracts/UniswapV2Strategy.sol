@@ -39,9 +39,11 @@ contract UniswapV2Strategy is IUniswapV2StyleStrategy {
     )
         external override flashLock
     {
+        // Calculate the amount of fundsAsseet the flashLender will require for a successful transaction and approve.
         uint256 expectedFundsAmount = ILiquidatorLike(flashLender_).getExpectedAmount(collateralBorrowed_);
         require(ERC20Helper.approve(fundsAsset_, flashLender_, expectedFundsAmount), "UV2S:FBL:APPROVE_FAILED");
 
+        // Call `liquidatePortion`, specifying `swap` as the low-level call to perform.
         ILiquidatorLike(flashLender_).liquidatePortion(
             collateralBorrowed_,
             maxReturnFunds_,
