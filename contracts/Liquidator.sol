@@ -10,9 +10,9 @@ contract Liquidator is ILiquidator {
 
     uint256 private constant NOT_LOCKED = uint256(0);
     uint256 private constant LOCKED     = uint256(1);
-    
+
     uint256 internal _locked;
-    
+
     address public override immutable collateralAsset;
     address public override immutable destination;
     address public override immutable fundsAsset;
@@ -37,6 +37,14 @@ contract Liquidator is ILiquidator {
         _locked = NOT_LOCKED;
     }
 
+    /**
+     * @param owner_           The address of an account that will have administrative privileges on this contract.
+     * @param collateralAsset_ The address of the collateral asset being liquidated.
+     * @param fundsAsset_      The address of the funds asset.
+     * @param auctioneer_      The address of an Auctioneer.
+     * @param destination_     The address to send funds asset after liquidation.
+     * @param globals_         The address of a Maple Globals contract.
+     */
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
         require((owner           = owner_)           != address(0), "LIQ:C:INVALID_OWNER");
         require((collateralAsset = collateralAsset_) != address(0), "LIQ:C:INVALID_COL_ASSET");
