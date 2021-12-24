@@ -37,6 +37,7 @@ contract AuctioneerMock {
 
         return oracleAmount > minRatioAmount ? oracleAmount : minRatioAmount;
     }
+
 }
 
 contract EmptyContract {}
@@ -62,7 +63,7 @@ contract MapleGlobalsMock {
 
 }
 
-// Contract to perform fake arbitrage transactions to prop price back up
+// Contract to perform fake arbitrage transactions to prop price back up.
 contract Rebalancer is StateManipulations {
 
     function swap(
@@ -125,4 +126,5 @@ contract ReentrantLiquidator {
     function reenter() external {
         ILiquidatorLike(lender).liquidatePortion(swapAmount, type(uint256).max, new bytes(0));
     }
+
 }

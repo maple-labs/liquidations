@@ -25,7 +25,7 @@ interface ILiquidator {
     event PortionLiquidated(uint256 swapAmount_, uint256 returnedAmount_);
 
     /**
-     * @dev Getter function that returns `collateralAsset`
+     * @dev Getter function that returns `collateralAsset`.
      */
     function collateralAsset() external view returns (address collateralAsset_);
 
@@ -56,14 +56,14 @@ interface ILiquidator {
 
     /**
      * @dev   Set the auctioneer contract address, which is used to pull the `getExpectedAmount`.
-     * @dev   Can only be set by `owner`.
+     *        Can only be set by `owner`.
      * @param auctioneer_ The auctioneer contract address.
      */
     function setAuctioneer(address auctioneer_) external;
 
     /**
      * @dev   Pulls a specified amount of ERC-20 tokens from the contract.
-     * @dev   Can only be called by `owner`.
+     *        Can only be called by `owner`.
      * @param token_       The ERC-20 token contract address.
      * @param destination_ The destination of the transfer.
      * @param amount_      The amount to transfer.
@@ -79,10 +79,10 @@ interface ILiquidator {
 
     /**
      * @dev   Flash loan function that:
-     * @dev   1. Transfers a specified amount of `collateralAsset` to `msg.sender`.
-     * @dev   2. Performs an arbitrary call to `msg.sender`, to trigger logic necessary to get `fundsAsset` (e.g., AMM swap).
-     * @dev   3. Performs a `transferFrom`, taking the corresponding amount of `fundsAsset` from the user.
-     * @dev   If the required amount of `fundsAsset` is not returned in step 3, the entire transaction reverts.
+     *        1. Transfers a specified amount of `collateralAsset` to `msg.sender`.
+     *        2. Performs an arbitrary call to `msg.sender`, to trigger logic necessary to get `fundsAsset` (e.g., AMM swap).
+     *        3. Performs a `transferFrom`, taking the corresponding amount of `fundsAsset` from the user.
+     *        If the required amount of `fundsAsset` is not returned in step 3, the entire transaction reverts.
      * @param swapAmount_      Amount of `collateralAsset` that is to be borrowed in the flash loan.
      * @param maxReturnAmount_ Max amount of `fundsAsset` that can be returned to the liquidator contract.
      * @param data_            ABI-encoded arguments to be used in the low-level call to perform step 2.
