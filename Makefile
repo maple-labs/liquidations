@@ -4,3 +4,5 @@ ci      :; ./build.sh -c ./config/ci.json
 clean   :; dapp clean
 test    :; ./test.sh
 release :; ./release.sh
+
+dapp-test :; ./dapp-test.sh
