@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - sc-4613-gh-action
 
 jobs:
   run-ci:
