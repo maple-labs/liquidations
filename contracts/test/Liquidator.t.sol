@@ -61,8 +61,6 @@ contract LiquidatorAdminTest is TestUtils {
     }
 
     function test_pullFunds() external {
-        emit log_named_uint("block.timestamp", block.timestamp);
-        emit log_named_uint("block.number   ", block.number);
         address fundsDestination = address(1);
 
         collateralAsset.mint(address(liquidator), 10 ether);
