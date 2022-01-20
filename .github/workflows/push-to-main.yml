@@ -1,6 +1,10 @@
-name: Basic Tests
+name: Basic PR Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - sc-4613-gh-action
 
 jobs:
   run-ci:
@@ -17,4 +21,4 @@ jobs:
         run: forge update
 
       - name: Run forge tests
-        run: make test
+        run: ./test.sh -r 500000
