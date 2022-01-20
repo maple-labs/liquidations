@@ -21,4 +21,6 @@ jobs:
         run: forge update
 
       - name: Run forge tests
+        env:
+          ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
         run: ./test.sh -r 500000
