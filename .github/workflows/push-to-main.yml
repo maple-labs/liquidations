@@ -1,4 +1,4 @@
-name: Basic PR Tests
+name: 500k fuzz run test on push to main
 
 on:
   push:
