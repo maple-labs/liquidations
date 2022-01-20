@@ -2,7 +2,5 @@ prod    :; ./build.sh -c ./config/prod.json
 dev     :; ./build.sh -c ./config/dev.json
 ci      :; ./build.sh -c ./config/ci.json
 clean   :; dapp clean
-test    :; ./test.sh -t test_pullFunds
+test    :; ./test.sh
 release :; ./release.sh
-
-dapp-test :; ./dapp-test.sh
