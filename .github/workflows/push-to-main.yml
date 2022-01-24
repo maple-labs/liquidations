@@ -1,4 +1,4 @@
-name: 500k fuzz run test on push to main
+name: SC Tests (50k fuzz runs)
 
 on:
   push:
@@ -22,4 +22,4 @@ jobs:
       - name: Run forge tests
         env:
           ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
-        run: ./test.sh -r 500000
+        run: ./test.sh -r 50000
