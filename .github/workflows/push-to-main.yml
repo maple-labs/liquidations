@@ -1,4 +1,4 @@
-name: SC Tests (50k fuzz runs)
+name: SC Tests
 
 on:
   push:
