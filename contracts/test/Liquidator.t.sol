@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { TestUtils, StateManipulations } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }                        from "../../modules/erc20/src/interfaces/IERC20.sol";
-import { MockERC20 }                     from "../../modules/erc20/src/test/mocks/MockERC20.sol";
+import { TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
+import { IERC20 }                        from "../../modules/erc20/contracts/interfaces/IERC20.sol";
+import { MockERC20 }                     from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
 
 import { Liquidator }        from "../Liquidator.sol";
 import { SushiswapStrategy } from "../SushiswapStrategy.sol";
@@ -84,7 +84,7 @@ contract LiquidatorAdminTest is TestUtils {
 
 }
 
-contract LiquidatorUniswapTest is TestUtils, StateManipulations {
+contract LiquidatorUniswapTest is TestUtils {
 
     address public constant UNISWAP_ROUTER_V2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     address public constant USDC              = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -292,7 +292,7 @@ contract LiquidatorUniswapTest is TestUtils, StateManipulations {
 
 }
 
-contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
+contract LiquidatorSushiswapTest is TestUtils {
 
     address public constant SUSHISWAP_ROUTER_V2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
     address public constant USDC                = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -500,7 +500,7 @@ contract LiquidatorSushiswapTest is TestUtils, StateManipulations {
 
 }
 
-contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
+contract LiquidatorMultipleAMMTest is TestUtils {
 
     address public constant SUSHISWAP_ROUTER_V2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
     address public constant UNISWAP_ROUTER_V2   = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -594,7 +594,7 @@ contract LiquidatorMultipleAMMTest is TestUtils, StateManipulations {
 
 }
 
-contract LiquidatorOTCTest is TestUtils, StateManipulations {
+contract LiquidatorOTCTest is TestUtils {
 
     address public constant fundsDestination = address(5959);
     address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -682,7 +682,7 @@ contract LiquidatorOTCTest is TestUtils, StateManipulations {
 
 }
 
-contract ReentrantLiquidatorTest is TestUtils, StateManipulations {
+contract ReentrantLiquidatorTest is TestUtils {
 
     address public constant fundsDestination = address(5959);
     address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
