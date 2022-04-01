@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 
 import { IERC20Like, IMapleGlobalsLike, IOracleLike, IUniswapRouterLike, ILiquidatorLike } from "../../interfaces/Interfaces.sol";
 
-import { StateManipulations } from "../../../modules/contract-test-utils/contracts/test.sol";
+import { TestUtils } from "../../../modules/contract-test-utils/contracts/test.sol";
 
 contract AuctioneerMock {
 
@@ -64,7 +64,7 @@ contract MapleGlobalsMock {
 }
 
 // Contract to perform fake arbitrage transactions to prop price back up.
-contract Rebalancer is StateManipulations {
+contract Rebalancer is TestUtils {
 
     function swap(
         address router_,
