@@ -16,7 +16,6 @@ contract Liquidator is ILiquidator {
     address public override immutable collateralAsset;
     address public override immutable destination;
     address public override immutable fundsAsset;
-    address public override immutable globals;
     address public override immutable owner;
 
     address public override auctioneer;
@@ -24,11 +23,6 @@ contract Liquidator is ILiquidator {
     /*****************/
     /*** Modifiers ***/
     /*****************/
-
-    modifier whenProtocolNotPaused() {
-        require(!IMapleGlobalsLike(globals).protocolPaused(), "LIQ:PROTOCOL_PAUSED");
-        _;
-    }
 
     modifier lock() {
         require(_locked == NOT_LOCKED, "LIQ:LOCKED");
@@ -43,15 +37,12 @@ contract Liquidator is ILiquidator {
      * @param fundsAsset_      The address of the funds asset.
      * @param auctioneer_      The address of an Auctioneer.
      * @param destination_     The address to send funds asset after liquidation.
-     * @param globals_         The address of a Maple Globals contract.
      */
-    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
+    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_) {
         require((owner           = owner_)           != address(0), "LIQ:C:INVALID_OWNER");
         require((collateralAsset = collateralAsset_) != address(0), "LIQ:C:INVALID_COL_ASSET");
         require((fundsAsset      = fundsAsset_)      != address(0), "LIQ:C:INVALID_FUNDS_ASSET");
         require((destination     = destination_)     != address(0), "LIQ:C:INVALID_DEST");
-
-        require(!IMapleGlobalsLike(globals = globals_).protocolPaused(), "LIQ:C:INVALID_GLOBALS");
 
         // NOTE: Auctioneer of zero is valid, since it is starting the contract off in a paused state.
         auctioneer = auctioneer_;
@@ -75,7 +66,7 @@ contract Liquidator is ILiquidator {
         return IAuctioneerLike(auctioneer).getExpectedAmount(swapAmount_);
     }
 
-    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
+    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override lock {
         // Transfer a requested amount of collateralAsset to the borrwer.
         require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
 

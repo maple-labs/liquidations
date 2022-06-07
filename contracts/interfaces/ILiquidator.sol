@@ -45,11 +45,6 @@ interface ILiquidator {
     function fundsAsset() external view returns (address fundsAsset_);
 
     /**
-     * @dev Getter function that returns `globals`.
-     */
-    function globals() external view returns (address);
-
-    /**
      * @dev Getter function that returns `owner`.
      */
     function owner() external view returns (address owner_);

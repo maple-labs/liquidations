@@ -19,14 +19,14 @@ contract LiquidatorConstructorTest is TestUtils {
         address globals       = address(new MapleGlobalsMock());
         address emptyContract = address(new EmptyContract());
 
-        try new Liquidator(address(0), address(1), address(1), address(1), address(1), globals)       { assertTrue(false, "Zero owner"); }           catch {}
-        try new Liquidator(address(1), address(0), address(1), address(1), address(1), globals)       { assertTrue(false, "Zero collateralAsset"); } catch {}
-        try new Liquidator(address(1), address(1), address(0), address(1), address(1), globals)       { assertTrue(false, "Zero fundsAsset"); }      catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(0), globals)       { assertTrue(false, "Zero destination"); }     catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), address(0))    { assertTrue(false, "Zero globals"); }         catch {}
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), emptyContract) { assertTrue(false, "Invalid globals"); }      catch {}
+        try new Liquidator(address(0), address(1), address(1), address(1), address(1))       { assertTrue(false, "Zero owner"); }           catch {}
+        try new Liquidator(address(1), address(0), address(1), address(1), address(1))       { assertTrue(false, "Zero collateralAsset"); } catch {}
+        try new Liquidator(address(1), address(1), address(0), address(1), address(1))       { assertTrue(false, "Zero fundsAsset"); }      catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(0))       { assertTrue(false, "Zero destination"); }     catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1))    { assertTrue(false, "Zero globals"); }         catch {}
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1)) { assertTrue(false, "Invalid globals"); }      catch {}
 
-        try new Liquidator(address(1), address(1), address(1), address(1), address(1), globals) {} catch { assertTrue(false, "Non-zero for all addresses"); }
+        try new Liquidator(address(1), address(1), address(1), address(1), address(1)) {} catch { assertTrue(false, "Non-zero for all addresses"); }
     }
 
 }
@@ -47,7 +47,7 @@ contract LiquidatorAdminTest is TestUtils {
         fundsAsset      = new MockERC20("FundsAsset",      "FA", 18);
         notOwner        = new Owner();
         owner           = new Owner();
-        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer, address(1), globals);
+        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer, address(1));
     }
 
     function test_setAuctioneer() external {
@@ -132,8 +132,8 @@ contract LiquidatorUniswapTest is TestUtils {
         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
         benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
 
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2);
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1);
         uniswapV2Strategy   = new UniswapV2Strategy();
         rebalancer          = new Rebalancer();
 
@@ -340,8 +340,8 @@ contract LiquidatorSushiswapTest is TestUtils {
         auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
         benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
 
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
+        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2);
+        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1);
         sushiswapStrategy   = new SushiswapStrategy();
         rebalancer          = new Rebalancer();
 
@@ -544,7 +544,7 @@ contract LiquidatorMultipleAMMTest is TestUtils {
         globals = new MapleGlobalsMock();
 
         auctioneer        = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
+        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
         sushiswapStrategy = new SushiswapStrategy();
         uniswapV2Strategy = new UniswapV2Strategy();
 
@@ -632,7 +632,7 @@ contract LiquidatorOTCTest is TestUtils {
         globals = new MapleGlobalsMock();
 
         auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
+        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
 
         globals.setPriceOracle(WETH, WETH_ORACLE);
         globals.setPriceOracle(USDC, USDC_ORACLE);
@@ -702,7 +702,7 @@ contract ReentrantLiquidatorTest is TestUtils {
         globals = new MapleGlobalsMock();
 
         auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
+        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination);
 
         reentrantStrategy = new ReentrantLiquidator();
 
