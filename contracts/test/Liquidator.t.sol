@@ -2,8 +2,8 @@
 pragma solidity 0.8.7;
 
 import { TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }                        from "../../modules/erc20/contracts/interfaces/IERC20.sol";
-import { MockERC20 }                     from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
+import { IERC20 }    from "../../modules/erc20/contracts/interfaces/IERC20.sol";
+import { MockERC20 } from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
 
 import { Liquidator }        from "../Liquidator.sol";
 import { SushiswapStrategy } from "../SushiswapStrategy.sol";
@@ -129,8 +129,12 @@ contract LiquidatorUniswapTest is TestUtils {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
-        benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
+        auctioneer          = new AuctioneerMock(address(globals), USDC);
+        benchmarkAuctioneer = new AuctioneerMock(address(globals), USDC);
+
+        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
+
+        benchmarkAuctioneer.__setValuesFor(WETH, 10_000, 0);  // 100% slippage allowed from market price
 
         benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
         liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
@@ -337,8 +341,12 @@ contract LiquidatorSushiswapTest is TestUtils {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer          = new AuctioneerMock(address(globals), WETH, USDC, 200,    2_000 * 10 ** 6);  // 2% slippage allowed from market price
-        benchmarkAuctioneer = new AuctioneerMock(address(globals), WETH, USDC, 10_000, 0);                // 100% slippage with zero ratio to benchmark against atomic liquidation
+        auctioneer          = new AuctioneerMock(address(globals), USDC);
+        benchmarkAuctioneer = new AuctioneerMock(address(globals), USDC);
+
+        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
+
+        benchmarkAuctioneer.__setValuesFor(WETH, 10_000, 0);  // 100% slippage with zero ratio to benchmark against atomic liquidation
 
         benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
         liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
@@ -543,10 +551,12 @@ contract LiquidatorMultipleAMMTest is TestUtils {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer        = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        auctioneer        = new AuctioneerMock(address(globals), USDC);
         liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
         sushiswapStrategy = new SushiswapStrategy();
         uniswapV2Strategy = new UniswapV2Strategy();
+
+        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
 
         globals.setPriceOracle(WETH, WETH_ORACLE);
         globals.setPriceOracle(USDC, USDC_ORACLE);
@@ -631,8 +641,10 @@ contract LiquidatorOTCTest is TestUtils {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        auctioneer = new AuctioneerMock(address(globals), USDC);
         liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
+
+        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
 
         globals.setPriceOracle(WETH, WETH_ORACLE);
         globals.setPriceOracle(USDC, USDC_ORACLE);
@@ -701,8 +713,10 @@ contract ReentrantLiquidatorTest is TestUtils {
     function setUp() external {
         globals = new MapleGlobalsMock();
 
-        auctioneer = new AuctioneerMock(address(globals), WETH, USDC, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
+        auctioneer = new AuctioneerMock(address(globals), USDC);
         liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
+
+        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
 
         reentrantStrategy = new ReentrantLiquidator();
 

@@ -8,32 +8,34 @@ import { TestUtils } from "../../../modules/contract-test-utils/contracts/test.s
 contract AuctioneerMock {
 
     address public owner;
-    address public collateralAsset;
-    address public fundsAsset;
     address public globals;
-    uint256 public allowedSlippage;
-    uint256 public minRatio;
+    address public fundsAsset;
 
-    constructor(address globals_, address collateralAsset_, address fundsAsset_, uint256 allowedSlippage_, uint256 minRatio_) {
-        owner           = msg.sender;
-        globals         = globals_;
-        collateralAsset = collateralAsset_;
-        fundsAsset      = fundsAsset_;
-        allowedSlippage = allowedSlippage_;
-        minRatio        = minRatio_;
+    mapping(address => uint256) public allowedSlippageFor;
+    mapping(address => uint256) public minRatioFor;
+
+    constructor(address globals_, address fundsAsset_) {
+        owner      = msg.sender;
+        globals    = globals_;
+        fundsAsset = fundsAsset_;
     }
 
-    function getExpectedAmount(uint256 swapAmount_) public view returns (uint256 returnAmount_) {
+    function __setValuesFor(address collateralAsset_, uint256 allowedSlippage_, uint256 minRatio_) external {
+        allowedSlippageFor[collateralAsset_] = allowedSlippage_;
+        minRatioFor[collateralAsset_]        = minRatio_;
+    }
+
+    function getExpectedAmount(address collateralAsset_, uint256 swapAmount_) public view returns (uint256 returnAmount_) {
         uint256 oracleAmount =
             swapAmount_
-                * IMapleGlobalsLike(globals).getLatestPrice(collateralAsset)  // Convert from `fromAsset` value.
-                * 10 ** IERC20Like(fundsAsset).decimals()                     // Convert to `toAsset` decimal precision.
-                * (10_000 - allowedSlippage)                                  // Multiply by allowed slippage basis points.
-                / IMapleGlobalsLike(globals).getLatestPrice(fundsAsset)       // Convert to `toAsset` value.
-                / 10 ** IERC20Like(collateralAsset).decimals()                // Convert from `fromAsset` decimal precision.
-                / 10_000;                                                     // Divide basis points for slippage.
+                * IMapleGlobalsLike(globals).getLatestPrice(collateralAsset_)  // Convert from `fromAsset` value.
+                * 10 ** IERC20Like(fundsAsset).decimals()                      // Convert to `toAsset` decimal precision.
+                * (10_000 - allowedSlippageFor[collateralAsset_])              // Multiply by allowed slippage basis points.
+                / IMapleGlobalsLike(globals).getLatestPrice(fundsAsset)        // Convert to `toAsset` value.
+                / 10 ** IERC20Like(collateralAsset_).decimals()                // Convert from `fromAsset` decimal precision.
+                / 10_000;                                                      // Divide basis points for slippage.
 
-        uint256 minRatioAmount = swapAmount_ * minRatio / 10 ** IERC20Like(collateralAsset).decimals();
+        uint256 minRatioAmount = (swapAmount_ * minRatioFor[collateralAsset_]) / (10 ** IERC20Like(collateralAsset_).decimals());
 
         return oracleAmount > minRatioAmount ? oracleAmount : minRatioAmount;
     }

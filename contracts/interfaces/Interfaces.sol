@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 
 interface IAuctioneerLike {
 
-    function getExpectedAmount(uint256 swapAmount_) external view returns (uint256 expectedAmount_);
+    function getExpectedAmount(address collateralAsset_, uint256 swapAmount_) external view returns (uint256 expectedAmount_);
 
 }
 
