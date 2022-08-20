@@ -20,4 +20,4 @@ export PROPTEST_CASES=$runs
 
 if [ -z "$test" ]; then match="[contracts/test/*.t.sol]"; else match=$test; fi
 
-forge test --match "$match" --rpc-url "$ETH_RPC_URL" --lib-paths "modules" -vv --optimize
+forge test --match "$match" --rpc-url "$ETH_RPC_URL"

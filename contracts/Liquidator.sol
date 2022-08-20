@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
+import { Address, console, TestUtils } from "../modules/contract-test-utils/contracts/test.sol";
+
 import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 
 import { ILiquidator }                        from "./interfaces/ILiquidator.sol";
@@ -14,7 +16,6 @@ contract Liquidator is ILiquidator {
     uint256 internal _locked;
 
     address public override immutable collateralAsset;
-    address public override immutable destination;
     address public override immutable fundsAsset;
     address public override immutable globals;
     address public override immutable owner;
@@ -46,15 +47,17 @@ contract Liquidator is ILiquidator {
      * @param globals_         The address of a Maple Globals contract.
      */
     constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
-        require((owner           = owner_)           != address(0), "LIQ:C:INVALID_OWNER");
-        require((collateralAsset = collateralAsset_) != address(0), "LIQ:C:INVALID_COL_ASSET");
-        require((fundsAsset      = fundsAsset_)      != address(0), "LIQ:C:INVALID_FUNDS_ASSET");
-        require((destination     = destination_)     != address(0), "LIQ:C:INVALID_DEST");
+        require((owner = owner_)     != address(0), "LIQ:C:INVALID_OWNER");
+        require(destination_         != address(0), "LIQ:C:INVALID_DEST");
+        require((globals = globals_) != address(0), "LIQ:C:INVALID_GLOBALS");
 
-        require(!IMapleGlobalsLike(globals = globals_).protocolPaused(), "LIQ:C:INVALID_GLOBALS");
+        require(ERC20Helper.approve(collateralAsset_, destination_, type(uint256).max), "LIQ:C:INVALID_C_APPROVE");
+        require(ERC20Helper.approve(fundsAsset_,      destination_, type(uint256).max), "LIQ:C:INVALID_F_APPROVE");
 
         // NOTE: Auctioneer of zero is valid, since it is starting the contract off in a paused state.
-        auctioneer = auctioneer_;
+        auctioneer      = auctioneer_;
+        collateralAsset = collateralAsset_;
+        fundsAsset      = fundsAsset_;
     }
 
     function setAuctioneer(address auctioneer_) external override {
@@ -89,7 +92,7 @@ contract Liquidator is ILiquidator {
         emit PortionLiquidated(collateralAmount_, returnAmount);
 
         // Pull required amount of fundsAsset from the borrower, if this amount of funds cannot be recovered atomically, revert.
-        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, destination, returnAmount), "LIQ:LP:TRANSFER_FROM");
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), returnAmount), "LIQ:LP:TRANSFER_FROM");
     }
 
 }

@@ -44,6 +44,14 @@ contract AuctioneerMock {
 
 contract EmptyContract {}
 
+contract FailApproveERC20 {
+
+    function approve(address _spender, uint256 _value) public returns (bool) {
+        return false;
+    }
+
+}
+
 contract MapleGlobalsMock {
 
     bool public protocolPaused;
