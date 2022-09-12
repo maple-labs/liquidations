@@ -46,4 +46,5 @@ interface IUniswapV2StyleStrategy {
         address middleAsset_,
         address fundsAsset_
     ) external;
+
 }

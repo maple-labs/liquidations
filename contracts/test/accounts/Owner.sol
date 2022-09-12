@@ -28,4 +28,5 @@ contract Owner {
     function try_liquidator_pullFunds(address liquidator_, address token_, address destination_, uint256 amount_) external returns (bool ok_) {
         ( ok_, ) = liquidator_.call(abi.encodeWithSelector(ILiquidator.pullFunds.selector, token_, destination_, amount_));
     }
+
 }

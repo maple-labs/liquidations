@@ -11,7 +11,7 @@ interface IERC20Like {
 
     function allowance(address account_, address spender_) external view returns (uint256 allowance_);
 
-    function approve(address account_, uint256 amount_) external;
+    function approve(address account_, uint256 amount_) external returns (bool success_);
 
     function balanceOf(address account_) external view returns (uint256 balance_);
 

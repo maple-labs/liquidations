@@ -63,6 +63,7 @@ contract Liquidator is ILiquidator {
     function setAuctioneer(address auctioneer_) external override {
         require(msg.sender == owner, "LIQ:SA:NOT_OWNER");
 
+        // NOTE: Auctioneer of zero is valid, since it puts the contract off in a paused state.
         emit AuctioneerSet(auctioneer = auctioneer_);
     }
 
