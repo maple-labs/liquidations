@@ -76,6 +76,8 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         // Transfer a requested amount of collateralAsset to the borrower.
         require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
 
+        collateralRemaining -= collateralAmount_;
+
         // Perform a low-level call to msg.sender, allowing a swap strategy to be executed with the transferred collateral.
         msg.sender.call(data_);
 
@@ -95,6 +97,12 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         emit FundsPulled(token_, destination_, amount_);
 
         require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
+    }
+
+    function setCollateralRemaining(uint256 collateralAmount_) external override {
+        require(msg.sender == loanManager, "LIQ:SCR:NOT_LM");
+
+        collateralRemaining = collateralAmount_;
     }
 
     function getExpectedAmount(uint256 swapAmount_) public view override returns (uint256 expectedAmount_) {

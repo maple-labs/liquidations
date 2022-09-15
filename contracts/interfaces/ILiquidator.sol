@@ -58,4 +58,10 @@ interface ILiquidator is ILiquidatorStorage, IMapleProxied {
      */
     function pullFunds(address token_, address destination_, uint256 amount_) external;
 
+    /**
+     * @dev   Sets the initial amount of collateral to be liquidated.
+     * @param collateralAmount_ The amount of collateral to be liquidated.
+     */
+    function setCollateralRemaining(uint256 collateralAmount_) external; 
+
 }

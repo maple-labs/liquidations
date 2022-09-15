@@ -300,6 +300,12 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         erc20_mint(address(weth), 3, address(benchmarkLiquidator), 1_000 ether);
         erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(1_000 ether);
+
+        vm.prank(benchmarkLiquidator.loanManager());
+        benchmarkLiquidator.setCollateralRemaining(1_000 ether);
+
         uint256 returnAmount = liquidator.getExpectedAmount(1_000 ether);
 
         assertEq(returnAmount, 3_301_495_281785);  // $3.3m
@@ -331,6 +337,8 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 13_001643);
 
+        assertEq(liquidator.collateralRemaining(), 517 ether);
+
         /**************************/
         /*** Second Liquidation ***/
         /**************************/
@@ -347,6 +355,8 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 6_047_538289);
+
+        assertEq(liquidator.collateralRemaining(), 267 ether);
 
         /**************************/
         /*** Third Liquidation ***/
@@ -365,6 +375,8 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 12_066_770467);
 
+        assertEq(liquidator.collateralRemaining(), 0);
+
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
@@ -376,12 +388,16 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
+        assertEq(benchmarkLiquidator.collateralRemaining(), 1000 ether);
+
         uniswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 3_250_485_553902);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
+
+        assertEq(benchmarkLiquidator.collateralRemaining(), 0 ether);
 
         assertEq(3_250_485_553902 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.984549507562998447 ether);  // ~ 1.5% savings on $3.3m liquidation, will do larger liquidations in another test
     }
@@ -391,11 +407,19 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         erc20_mint(address(weth), 3, address(benchmarkLiquidator), 10_000 ether);
         erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(10_000 ether);
+
+        vm.prank(benchmarkLiquidator.loanManager());
+        benchmarkLiquidator.setCollateralRemaining(10_000 ether);
+
         assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
         assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+
+        assertEq(liquidator.collateralRemaining(), 10_000 ether);
 
         /******************************/
         /*** Piecewise Liquidations ***/
@@ -415,6 +439,8 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 66_683_168893);
 
+        assertEq(liquidator.collateralRemaining(), 0);
+
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
@@ -424,12 +450,16 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
+        assertEq(benchmarkLiquidator.collateralRemaining(), 10_000 ether);
+
         uniswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 25_590_976_821869);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
+
+        assertEq(benchmarkLiquidator.collateralRemaining(), 0);
 
         assertEq(uint256(25_590_976_821869) * 10 ** 18 / uint256(330_149_528_17844), 0.775132921227060732 ether);  // ~22.4% savings on $340m liquidation
     }
@@ -443,6 +473,12 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         erc20_mint(address(weth), 3, address(benchmarkLiquidator), 2_000 ether);
         erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(2_000 ether);
+
+        vm.prank(benchmarkLiquidator.loanManager());
+        benchmarkLiquidator.setCollateralRemaining(2_000 ether);
+
         uint256 returnAmount = liquidator.getExpectedAmount(2_000 ether);
 
         assertEq(returnAmount, 6_602_990_563570);  // $6.6m
@@ -452,6 +488,8 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(liquidator)),        0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+
+        assertEq(liquidator.collateralRemaining(), 2_000 ether);
 
         // Try liquidating amount that is above slippage requirements
         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
@@ -474,6 +512,8 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 2_366_149563);
 
+        assertEq(liquidator.collateralRemaining(), 1050 ether);
+
         /**************************/
         /*** Second Liquidation ***/
         /**************************/
@@ -490,6 +530,8 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 5_039_959806);
+
+        assertEq(liquidator.collateralRemaining(), 100 ether);
 
         /**************************/
         /*** Third Liquidation ***/
@@ -508,6 +550,8 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 10_233_419098);
 
+        assertEq(liquidator.collateralRemaining(), 0);
+
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
@@ -519,12 +563,16 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
+        assertEq(benchmarkLiquidator.collateralRemaining(), 2_000 ether);
+
         sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 6_481_487_535049);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+
+        assertEq(benchmarkLiquidator.collateralRemaining(), 0);
 
         assertEq(6_481_487_535049 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.981598788102258853 ether);  // ~ 1.9% savings on $6.6m liquidation, will do larger liquidations in another test
     }
@@ -534,11 +582,19 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         erc20_mint(address(weth), 3, address(benchmarkLiquidator), 10_000 ether);
         erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(10_000 ether);
+
+        vm.prank(benchmarkLiquidator.loanManager());
+        benchmarkLiquidator.setCollateralRemaining(10_000 ether);
+
         assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+
+        assertEq(liquidator.collateralRemaining(), 10_000 ether);
 
         /******************************/
         /*** Piecewise Liquidations ***/
@@ -558,6 +614,8 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 328_752_316354);
 
+        assertEq(liquidator.collateralRemaining(), 0);
+
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
@@ -567,12 +625,16 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
+        assertEq(benchmarkLiquidator.collateralRemaining(), 10_000 ether);
+
         sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 28_637_543_873315);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
+
+        assertEq(benchmarkLiquidator.collateralRemaining(), 0 ether);
 
         assertEq(uint256(28_637_543_873315) * 10 ** 18 / uint256(330_149_528_17844), 0.867411322115744850 ether);  // ~13.2% savings on $34m liquidation
     }
@@ -585,6 +647,9 @@ contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
     function test_liquidator_multipleStrategies() public assertFailureWhenPaused {
         erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(1_400 ether);
+
         assertEq(weth.balanceOf(address(liquidator)),        1_400 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
@@ -593,6 +658,8 @@ contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
+
+        assertEq(liquidator.collateralRemaining(), 1_400 ether);
 
         // Try liquidating amounts that are above slippage requirements (determined with while loop)
         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
@@ -612,6 +679,8 @@ contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
         assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
 
+        assertEq(liquidator.collateralRemaining(), 0 ether);
+
         assertWithinDiff(usdc.balanceOf(address(liquidator)), returnAmount, 1);
 
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
@@ -626,6 +695,9 @@ contract LiquidatorOTCTest is LiquidatorTestBase {
     function test_eoa_otc_liquidation() public assertFailureWhenPaused {
         erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(1_400 ether);
+
         uint256 returnAmount1 = liquidator.getExpectedAmount(1_400 ether);
 
         assertEq(returnAmount1, 4_622_093_394499);
@@ -637,6 +709,8 @@ contract LiquidatorOTCTest is LiquidatorTestBase {
         assertEq(weth.balanceOf(address(this)),       0);
         assertEq(usdc.balanceOf(address(liquidator)), 0);
         assertEq(usdc.balanceOf(address(this)),       returnAmount1);
+
+        assertEq(liquidator.collateralRemaining(), 1_400 ether);
 
         usdc.approve(address(liquidator), returnAmount1 - 1);  // Approve for an amount less than the expected amount
 
@@ -661,6 +735,8 @@ contract LiquidatorOTCTest is LiquidatorTestBase {
         assertEq(weth.balanceOf(address(this)),       1_400 ether);
         assertEq(usdc.balanceOf(address(liquidator)), returnAmount1);
         assertEq(usdc.balanceOf(address(this)),       0);
+
+        assertEq(liquidator.collateralRemaining(), 0 ether);
     }
 
 }
@@ -669,6 +745,9 @@ contract ReentrantLiquidatorTest is LiquidatorTestBase {
 
     function test_liquidator_reentrantStrategy() public {
         erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
+
+        vm.prank(liquidator.loanManager());
+        liquidator.setCollateralRemaining(1_400 ether);
 
         try reentrantLiquidator.flashBorrowLiquidation(address(liquidator), 1_400 ether) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
     }
