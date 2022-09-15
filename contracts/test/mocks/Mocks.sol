@@ -5,24 +5,85 @@ import { IERC20Like, IMapleGlobalsLike, IOracleLike, IUniswapRouterLike, ILiquid
 
 import { TestUtils } from "../../../modules/contract-test-utils/contracts/test.sol";
 
-contract AuctioneerMock {
+contract EmptyContract { }
 
-    address public owner;
-    address public globals;
+contract FailApproveERC20 {
+
+    function approve(address, uint256) public pure returns (bool) {
+        return false;
+    }
+
+}
+
+contract MockFactory {
+
+    mapping(address => bool) public isInstance;
+
+    function __setInstance(address instance_, bool isInstance_) external {
+        isInstance[instance_] = isInstance_;
+    }
+
+}
+
+contract MockGlobals {
+
+    address public governor;
+
+    bool public protocolPaused;
+
+    bool internal _isValidScheduledCall;
+
+    mapping(address => address) public oracleFor;
+
+    mapping(bytes32 => mapping(address => bool)) public isFactory;
+
+    constructor(address governor_) {
+        governor = governor_;
+    }
+
+    function getLatestPrice(address asset_) external view returns (uint256 price_) {
+        ( , int256 price, , , ) = IOracleLike(oracleFor[asset_]).latestRoundData();
+        return uint256(price);
+    }
+
+    function isValidScheduledCall(address, address, bytes32, bytes calldata) external view returns (bool isValid_) {
+        isValid_ = _isValidScheduledCall;
+    }
+
+    function unscheduleCall(address, bytes32, bytes calldata) external { }
+
+    function __setFactory(bytes32 factoryId_, address factory_, bool isValid_) external {
+        isFactory[factoryId_][factory_] = isValid_;
+    }
+
+    function __setIsValidScheduledCall(bool isValid_) external {
+        _isValidScheduledCall = isValid_;
+    }
+
+    function __setPriceOracle(address asset_, address oracle_) external {
+        oracleFor[asset_] = oracle_;
+    }
+
+    function __setProtocolPaused(bool paused_) external {
+        protocolPaused = paused_;
+    }
+
+}
+
+contract MockLoanManager {
+
+    address public factory;
     address public fundsAsset;
+    address public globals;
+    address public poolDelegate;
 
     mapping(address => uint256) public allowedSlippageFor;
     mapping(address => uint256) public minRatioFor;
 
-    constructor(address globals_, address fundsAsset_) {
-        owner      = msg.sender;
-        globals    = globals_;
-        fundsAsset = fundsAsset_;
-    }
-
-    function __setValuesFor(address collateralAsset_, uint256 allowedSlippage_, uint256 minRatio_) external {
-        allowedSlippageFor[collateralAsset_] = allowedSlippage_;
-        minRatioFor[collateralAsset_]        = minRatio_;
+    constructor(address globals_, address fundsAsset_, address poolDelegate_) {
+        globals      = globals_;
+        fundsAsset   = fundsAsset_;
+        poolDelegate = poolDelegate_;
     }
 
     function getExpectedAmount(address collateralAsset_, uint256 swapAmount_) public view returns (uint256 returnAmount_) {
@@ -40,35 +101,27 @@ contract AuctioneerMock {
         return oracleAmount > minRatioAmount ? oracleAmount : minRatioAmount;
     }
 
-}
+    function governor() external view returns (address governor_) {
+        governor_ = IMapleGlobalsLike(globals).governor();
+    }
 
-contract EmptyContract {}
+    function __setFactory(address factory_) external {
+        factory = factory_;
+    }
 
-contract FailApproveERC20 {
-
-    function approve(address _spender, uint256 _value) public returns (bool) {
-        return false;
+    function __setValuesFor(address collateralAsset_, uint256 allowedSlippage_, uint256 minRatio_) external {
+        allowedSlippageFor[collateralAsset_] = allowedSlippage_;
+        minRatioFor[collateralAsset_]        = minRatio_;
     }
 
 }
 
-contract MapleGlobalsMock {
+contract MockMigrator {
 
-    bool public protocolPaused;
+    address collateralAsset;
 
-    mapping(address => address) public oracleFor;
-
-    function getLatestPrice(address asset_) external view returns (uint256 price_) {
-        ( , int256 price, , , ) = IOracleLike(oracleFor[asset_]).latestRoundData();
-        return uint256(price);
-    }
-
-    function setPriceOracle(address asset_, address oracle_) external {
-        oracleFor[asset_] = oracle_;
-    }
-
-    function setProtocolPaused(bool paused_) external {
-        protocolPaused = paused_;
+    fallback() external {
+        collateralAsset = abi.decode(msg.data, (address));
     }
 
 }

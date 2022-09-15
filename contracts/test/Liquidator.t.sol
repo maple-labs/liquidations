@@ -1,169 +1,71 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { Address, console, TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
-import { IERC20 }             from "../../modules/erc20/contracts/interfaces/IERC20.sol";
-import { MockERC20 }          from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
+import { Address, TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
+import { ERC20              } from "../../modules/erc20/contracts/ERC20.sol";
+import { MockERC20          } from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
 
-import { Liquidator }        from "../Liquidator.sol";
-import { SushiswapStrategy } from "../SushiswapStrategy.sol";
-import { UniswapV2Strategy } from "../UniswapV2Strategy.sol";
+import { Liquidator            } from "../Liquidator.sol";
+import { LiquidatorFactory     } from "../LiquidatorFactory.sol";
+import { LiquidatorInitializer } from "../LiquidatorInitializer.sol";
 
-import { Owner } from "./accounts/Owner.sol";
+import { SushiswapStrategy } from "../strategies/SushiswapStrategy.sol";
+import { UniswapV2Strategy } from "../strategies/UniswapV2Strategy.sol";
 
-import { AuctioneerMock, EmptyContract, FailApproveERC20, MapleGlobalsMock, Rebalancer, ReentrantLiquidator } from "./mocks/Mocks.sol";
+import {
+    FailApproveERC20,
+    MockFactory,
+    MockGlobals,
+    MockLoanManager,
+    MockMigrator,
+    Rebalancer,
+    ReentrantLiquidator
+} from "./mocks/Mocks.sol";
 
-contract LiquidatorConstructorTest is TestUtils {
+contract LiquidatorTestBase is TestUtils {
 
-    address auctioneer;
-    address collateralAsset;
-    address destination;
-    address emptyContract;
-    address failingErc20;
-    address fundsAsset;
-    address globals;
-    address owner;
+    address governor;
+    address poolDelegate;
+    address profitDestination;
 
-    function setUp() external {
-        auctioneer      = address(new Address());
-        collateralAsset = address(new MockERC20("Collateral", "COLLATERAL", 18));
-        destination     = address(new Address());
-        emptyContract   = address(new EmptyContract());
-        failingErc20    = address(new FailApproveERC20());
-        fundsAsset      = address(new MockERC20("Funds", "FUNDS", 18));
-        globals         = address(new MapleGlobalsMock());
-        owner           = address(new Address());
-    }
+    address sushiswapRouterV2;
+    address uniswapRouterV2;
+    address usdcOracle;
+    address wethOracle;
 
-    function test_constructor_zeroOwner() external {
-        vm.expectRevert("LIQ:C:INVALID_OWNER");
-        new Liquidator(address(0), collateralAsset, fundsAsset, auctioneer, destination, globals);
-    }
+    address implementation;
+    address initializer;
 
-    function test_constructor_zeroDestination() external {
-        vm.expectRevert("LIQ:C:INVALID_DEST");
-        new Liquidator(owner, collateralAsset, fundsAsset, auctioneer, address(0), globals);
-    }
+    // Helper state variable to avoid infinite loops when using the modifier.
+    bool locked;
 
-    function test_constructor_zeroGlobals() external {
-        vm.expectRevert("LIQ:C:INVALID_GLOBALS");
-        new Liquidator(owner, collateralAsset, fundsAsset, auctioneer, destination, address(0));
-    }
+    ERC20 usdc;
+    ERC20 weth;
 
-    function test_constructor_badApproveCollateralAsset() external {
-        vm.expectRevert("LIQ:C:INVALID_C_APPROVE");
-        new Liquidator(owner, failingErc20, fundsAsset, auctioneer, destination, globals);
-    }
+    MockFactory     loanManagerFactory;
+    MockGlobals     globals;
+    MockLoanManager benchmarkLoanManager;
+    MockLoanManager loanManager;
 
-    function test_constructor_badApproveFundsAsset() external {
-        vm.expectRevert("LIQ:C:INVALID_F_APPROVE");
-        new Liquidator(owner, collateralAsset, failingErc20, auctioneer, destination, globals);
-    }
+    Liquidator          benchmarkLiquidator;
+    Liquidator          liquidator;
+    LiquidatorFactory   liquidatorFactory;
+    Rebalancer          rebalancer;
+    ReentrantLiquidator reentrantLiquidator;
 
-    function test_constructor_success() external {
-        Liquidator liquidator = new Liquidator(owner, collateralAsset, fundsAsset, auctioneer, destination, globals);
-
-        assertEq(liquidator.owner(),           owner);
-        assertEq(liquidator.collateralAsset(), collateralAsset);
-        assertEq(liquidator.fundsAsset(),      fundsAsset);
-        assertEq(liquidator.auctioneer(),      auctioneer);
-        assertEq(liquidator.globals(),         globals);
-
-        assertEq(MockERC20(collateralAsset).allowance(address(liquidator), destination), type(uint256).max);
-
-        assertEq(MockERC20(fundsAsset).allowance(address(liquidator), destination), type(uint256).max);
-    }
-
-}
-
-contract LiquidatorAdminTest is TestUtils {
-
-    address internal auctioneer = address(111);
-    address internal globals    = address(new MapleGlobalsMock());
-
-    Liquidator internal liquidator;
-    MockERC20  internal collateralAsset;
-    MockERC20  internal fundsAsset;
-    Owner      internal owner;
-    Owner      internal notOwner;
-
-    function setUp() external {
-        collateralAsset = new MockERC20("CollateralAsset", "CA", 18);
-        fundsAsset      = new MockERC20("FundsAsset",      "FA", 18);
-        notOwner        = new Owner();
-        owner           = new Owner();
-        liquidator      = new Liquidator(address(owner), address(collateralAsset), address(fundsAsset), auctioneer, address(1), globals);
-    }
-
-    function test_setAuctioneer() external {
-        assertEq(liquidator.auctioneer(), address(111));
-        assertEq(liquidator.owner(),      address(owner));
-
-        assertTrue(!notOwner.try_liquidator_setAuctioneer(address(liquidator), address(123)));
-        assertTrue(    owner.try_liquidator_setAuctioneer(address(liquidator), address(123)));
-
-        assertEq(liquidator.auctioneer(), address(123));
-    }
-
-    function test_pullFunds() external {
-        address fundsDestination = address(1);
-
-        collateralAsset.mint(address(liquidator), 10 ether);
-        fundsAsset.mint(address(liquidator),      20 ether);
-
-        assertEq(collateralAsset.balanceOf(address(liquidator)),       10 ether);
-        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 0);
-        assertEq(fundsAsset.balanceOf(address(liquidator)),            20 ether);
-        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      0);
-
-        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
-        assertTrue(!notOwner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
-        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(collateralAsset), address(fundsDestination), 10 ether));
-        assertTrue(    owner.try_liquidator_pullFunds(address(liquidator), address(fundsAsset),      address(fundsDestination), 20 ether));
-
-        assertEq(collateralAsset.balanceOf(address(liquidator)),       0);
-        assertEq(collateralAsset.balanceOf(address(fundsDestination)), 10 ether);
-        assertEq(fundsAsset.balanceOf(address(liquidator)),            0);
-        assertEq(fundsAsset.balanceOf(address(fundsDestination)),      20 ether);
-    }
-
-}
-
-contract LiquidatorUniswapTest is TestUtils {
-
-    address public constant UNISWAP_ROUTER_V2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-    address public constant USDC              = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE       = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH              = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE       = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-
-    IERC20 internal constant usdc = IERC20(USDC);
-    IERC20 internal constant weth = IERC20(WETH);
-
-    address internal fundsDestination1 = address(new Address());
-    address internal fundsDestination2 = address(new Address());
-    address internal profitDestination = address(new Address());  // Address that collects profits from swaps
-
-    AuctioneerMock    internal auctioneer;
-    AuctioneerMock    internal benchmarkAuctioneer;
-    Liquidator        internal benchmarkLiquidator;
-    Liquidator        internal liquidator;
-    MapleGlobalsMock  internal globals;
-    Rebalancer        internal rebalancer;
-    UniswapV2Strategy internal uniswapV2Strategy;
-
-    bool locked;  // Helper state variable to avoid infinite loops when using the modifier.
+    UniswapV2Strategy uniswapStrategy;
+    SushiswapStrategy sushiswapStrategy;
 
     modifier assertFailureWhenPaused() {
         if (!locked) {
             locked = true;
 
-            globals.setProtocolPaused(true);
+            globals.__setProtocolPaused(true);
 
             ( bool success, ) = address(this).call(msg.data);
             assertTrue(!success || failed, "test should have failed when paused");
 
-            globals.setProtocolPaused(false);
+            globals.__setProtocolPaused(false);
         }
 
         _;
@@ -171,45 +73,248 @@ contract LiquidatorUniswapTest is TestUtils {
         locked = false;
     }
 
-    function setUp() external {
-        globals = new MapleGlobalsMock();
+    /***********************/
+    /*** Setup Functions ***/
+    /***********************/
 
-        auctioneer          = new AuctioneerMock(address(globals), USDC);
-        benchmarkAuctioneer = new AuctioneerMock(address(globals), USDC);
-
-        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
-
-        benchmarkAuctioneer.__setValuesFor(WETH, 10_000, 0);  // 100% slippage allowed from market price to demonstrate actual amount taken in case of atomic liquidation
-
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
-        uniswapV2Strategy   = new UniswapV2Strategy();
-        rebalancer          = new Rebalancer();
-
-        globals.setPriceOracle(WETH, WETH_ORACLE);
-        globals.setPriceOracle(USDC, USDC_ORACLE);
+    function setUp() public virtual {
+        _linkContracts();
+        _createAccounts();
+        _createGlobals();
+        _createLoanManagerFactory();
+        _createLoanManagers();
+        _createLiquidators();
+        _createStrategies();
     }
 
-    function test_liquidator_uniswapV2Strategy() assertFailureWhenPaused public {
-        erc20_mint(WETH, 3, address(liquidator),          1_000 ether);
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 1_000 ether);
-        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+    function _createAccounts() internal {
+        governor          = address(new Address());
+        poolDelegate      = address(new Address());
+        profitDestination = address(new Address());
+    }
+
+    function _createGlobals() internal {
+        globals = new MockGlobals(address(governor));
+        globals.__setPriceOracle(address(usdc), usdcOracle);
+        globals.__setPriceOracle(address(weth), wethOracle);
+    }
+
+    function _createLiquidators() internal {
+        vm.startPrank(governor);
+        liquidatorFactory = new LiquidatorFactory(address(globals));
+        implementation    = address(new Liquidator());
+        initializer       = address(new LiquidatorInitializer());
+        liquidatorFactory.registerImplementation(1, implementation, initializer);
+        liquidatorFactory.setDefaultVersion(1);
+        vm.stopPrank();
+
+        vm.startPrank(address(loanManager));
+        liquidator          = Liquidator(liquidatorFactory.createInstance(abi.encode(address(loanManager),          address(weth), address(usdc)), "loan-1"));
+        benchmarkLiquidator = Liquidator(liquidatorFactory.createInstance(abi.encode(address(benchmarkLoanManager), address(weth), address(usdc)), "loan-2"));
+        vm.stopPrank();
+
+        rebalancer          = new Rebalancer();
+        reentrantLiquidator = new ReentrantLiquidator();
+    }
+
+    function _createLoanManagerFactory() internal {
+        loanManagerFactory = new MockFactory();
+
+        globals.__setFactory("LOAN_MANAGER", address(loanManagerFactory), true);
+    }
+
+    function _createLoanManagers() internal {
+        loanManager = new MockLoanManager(address(globals), address(usdc), address(poolDelegate));
+        loanManager.__setFactory(address(loanManagerFactory));
+        loanManager.__setValuesFor(address(weth), 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
+
+        benchmarkLoanManager = new MockLoanManager(address(globals), address(usdc), address(poolDelegate));
+        benchmarkLoanManager.__setFactory(address(loanManagerFactory));
+        benchmarkLoanManager.__setValuesFor(address(weth), 10_000, 0);
+
+        loanManagerFactory.__setInstance(address(loanManager),          true);
+        loanManagerFactory.__setInstance(address(benchmarkLoanManager), true);
+    }
+
+    function _createStrategies() internal {
+        uniswapStrategy   = new UniswapV2Strategy();
+        sushiswapStrategy = new SushiswapStrategy();
+    }
+
+    function _linkContracts() internal {
+        usdc = ERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+
+        sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+        uniswapRouterV2   = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        usdcOracle        = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
+        wethOracle        = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+    }
+
+}
+
+contract LiquidatorMigrateTests is LiquidatorTestBase {
+
+    address migrator;
+
+    function setUp() public override {
+        super.setUp();
+
+        migrator = address(new MockMigrator());
+    }
+
+    function test_migrate_notFactory() external {
+        vm.expectRevert("LIQ:M:NOT_FACTORY");
+        liquidator.migrate(migrator, "");
+    }
+
+    function test_migrate_internalFailure() external {
+        vm.prank(address(liquidatorFactory));
+        vm.expectRevert("LIQ:M:FAILED");
+        liquidator.migrate(migrator, "");
+    }
+
+    function test_migrate_success() external {
+        assertEq(liquidator.collateralAsset(), address(weth));
+
+        vm.prank(address(liquidatorFactory));
+        liquidator.migrate(migrator, abi.encode(address(usdc)));
+
+        assertEq(liquidator.collateralAsset(), address(usdc));
+    }
+
+}
+
+contract LiquidatorSetImplementationTests is LiquidatorTestBase {
+
+    address newImplementation;
+
+    function setUp() public override {
+        super.setUp();
+
+        newImplementation = address(new Liquidator());
+    }
+
+    function test_setImplementation_notFactory() external {
+        vm.expectRevert("LIQ:SI:NOT_FACTORY");
+        liquidator.setImplementation(newImplementation);
+    }
+
+    function test_setImplementation_success() external {
+        assertEq(liquidator.implementation(), implementation);
+
+        vm.prank(address(liquidatorFactory));
+        liquidator.setImplementation(newImplementation);
+
+        assertEq(liquidator.implementation(), newImplementation);
+    }
+
+}
+
+contract LiquidatorUpgradeTests is LiquidatorTestBase {
+
+    address migrator;
+    address newImplementation;
+
+    function setUp() public override {
+        super.setUp();
+
+        migrator          = address(new MockMigrator());
+        newImplementation = address(new Liquidator());
+
+        vm.startPrank(governor);
+        liquidatorFactory.registerImplementation(2, newImplementation, initializer);
+        liquidatorFactory.enableUpgradePath(1, 2, migrator);
+        vm.stopPrank();
+    }
+
+    function test_upgrade_notAuthorized() external {
+        vm.expectRevert("LIQ:U:NOT_AUTHORIZED");
+        liquidator.upgrade(2, "");
+    }
+
+    function test_upgrade_notScheduled() external {
+        vm.prank(poolDelegate);
+        vm.expectRevert("LIQ:U:INVALID_SCHED_CALL");
+        liquidator.upgrade(2, "");
+    }
+
+    function test_upgrade_withGovernor() external {
+        MockGlobals(globals).__setIsValidScheduledCall(false);
+
+        assertEq(liquidator.implementation(), implementation);
+
+        vm.prank(governor);
+        liquidator.upgrade(2, abi.encode(address(usdc)));
+
+        assertEq(liquidator.implementation(),  address(newImplementation));
+        assertEq(liquidator.collateralAsset(), address(usdc));
+    }
+
+    function test_upgrade_withPoolDelegate() external {
+        MockGlobals(globals).__setIsValidScheduledCall(true);
+
+        assertEq(liquidator.implementation(), implementation);
+
+        vm.prank(poolDelegate);
+        liquidator.upgrade(2, abi.encode(address(usdc)));
+
+        assertEq(liquidator.implementation(),  address(newImplementation));
+        assertEq(liquidator.collateralAsset(), address(usdc));
+    }
+
+}
+
+contract LiquidatorPullFundsTest is LiquidatorTestBase {
+
+    function test_pullFunds_notLoanManager() external {
+        vm.expectRevert("LIQ:PF:NOT_LM");
+        liquidator.pullFunds(address(weth), address(poolDelegate), 1);
+    }
+
+    function test_pullFunds_transferFailure() external {
+        vm.prank(address(loanManager));
+        vm.expectRevert("LIQ:PF:TRANSFER");
+        liquidator.pullFunds(address(weth), address(poolDelegate), 1);
+    }
+
+    function test_pullFunds_success() external {
+        erc20_mint(address(weth), 3, address(liquidator), 1);
+
+        assertEq(weth.balanceOf(address(liquidator)),   1);
+        assertEq(weth.balanceOf(address(poolDelegate)), 0);
+
+        vm.prank(address(loanManager));
+        liquidator.pullFunds(address(weth), address(poolDelegate), 1);
+
+        assertEq(weth.balanceOf(address(liquidator)),   0);
+        assertEq(weth.balanceOf(address(poolDelegate)), 1);
+    }
+
+}
+
+contract LiquidatorUniswapTest is LiquidatorTestBase {
+
+    function test_liquidator_uniswapStrategy() assertFailureWhenPaused public {
+        erc20_mint(address(weth), 3, address(liquidator),          1_000 ether);
+        erc20_mint(address(weth), 3, address(benchmarkLiquidator), 1_000 ether);
+        erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
         uint256 returnAmount = liquidator.getExpectedAmount(1_000 ether);
 
         assertEq(returnAmount, 3_301_495_281785);  // $3.3m
 
         assertEq(weth.balanceOf(address(liquidator)),        1_000 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)), 0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amount that is above slippage requirements
-        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 485 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try uniswapStrategy.flashBorrowLiquidation(address(liquidator), 485 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
         // Function reverts if returnAmount is larger than maxReturnAmount
-        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 485 ether, 1, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try uniswapStrategy.flashBorrowLiquidation(address(liquidator), 485 ether, 1, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
         /*************************/
         /*** First Liquidation ***/
@@ -218,78 +323,78 @@ contract LiquidatorUniswapTest is TestUtils {
         uint256 returnAmount1 = liquidator.getExpectedAmount(483 ether);
         assertEq(returnAmount1, 1_594_622_221102);  // $1.59m
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 483 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        uniswapStrategy.flashBorrowLiquidation(address(liquidator), 483 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        517 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 13_001643);
 
         /**************************/
         /*** Second Liquidation ***/
         /**************************/
 
-        rebalancer.swap(UNISWAP_ROUTER_V2, 483 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(uniswapRouterV2, 483 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         uint256 returnAmount2 = liquidator.getExpectedAmount(250 ether);
         assertEq(returnAmount2, 825_373_820446);  // $825k
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 250 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        uniswapStrategy.flashBorrowLiquidation(address(liquidator), 250 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        267 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 6_047_538289);
 
         /**************************/
         /*** Third Liquidation ***/
         /**************************/
 
-        rebalancer.swap(UNISWAP_ROUTER_V2, 250 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(uniswapRouterV2, 250 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         uint256 returnAmount3 = liquidator.getExpectedAmount(267 ether);
         assertEq(returnAmount3, 881_499_240236);  // $881k
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 267 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        uniswapStrategy.flashBorrowLiquidation(address(liquidator), 267 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        returnAmount1 + returnAmount2 + returnAmount3);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 12_066_770467);
 
         /*****************************/
         /*** Benchmark Liquidation ***/
         /*****************************/
 
-        rebalancer.swap(UNISWAP_ROUTER_V2, 267 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(uniswapRouterV2, 267 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 1000 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, type(uint256).max, 0, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        uniswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 1000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 3_250_485_553902);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
         assertEq(3_250_485_553902 * 10 ** 18 / (returnAmount1 + returnAmount2 + returnAmount3), 0.984549507562998447 ether);  // ~ 1.5% savings on $3.3m liquidation, will do larger liquidations in another test
     }
 
-    function test_liquidator_uniswapV2Strategy_largeLiquidation() assertFailureWhenPaused public {
-        erc20_mint(WETH, 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 10_000 ether);
-        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+    function test_liquidator_uniswapStrategy_largeLiquidation() assertFailureWhenPaused public {
+        erc20_mint(address(weth), 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
+        erc20_mint(address(weth), 3, address(benchmarkLiquidator), 10_000 ether);
+        erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
         assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         /******************************/
@@ -299,15 +404,15 @@ contract LiquidatorUniswapTest is TestUtils {
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-            uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+            uniswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
-            rebalancer.swap(UNISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+            rebalancer.swap(uniswapRouterV2, swapAmount, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
         }
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(liquidator)),        330_149_528_17844);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 66_683_168893);
 
         /*****************************/
@@ -315,87 +420,28 @@ contract LiquidatorUniswapTest is TestUtils {
         /*****************************/
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 10_000 ether);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
-        uniswapV2Strategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        uniswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 25_590_976_821869);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)),   0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),     0);
 
         assertEq(uint256(25_590_976_821869) * 10 ** 18 / uint256(330_149_528_17844), 0.775132921227060732 ether);  // ~22.4% savings on $340m liquidation
     }
 
 }
 
-contract LiquidatorSushiswapTest is TestUtils {
-
-    address public constant SUSHISWAP_ROUTER_V2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
-    address public constant USDC                = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE         = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH                = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE         = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-
-    IERC20 internal constant usdc = IERC20(USDC);
-    IERC20 internal constant weth = IERC20(WETH);
-
-    address internal fundsDestination1 = address(new Address());
-    address internal fundsDestination2 = address(new Address());
-    address internal profitDestination = address(new Address());  // Address that collects profits from swaps
-
-    AuctioneerMock    internal auctioneer;
-    AuctioneerMock    internal benchmarkAuctioneer;
-    Liquidator        internal benchmarkLiquidator;
-    Liquidator        internal liquidator;
-    MapleGlobalsMock  internal globals;
-    Rebalancer        internal rebalancer;
-    SushiswapStrategy internal sushiswapStrategy;
-
-    bool locked;  // Helper state variable to avoid infinite loops when using the modifier.
-
-    modifier assertFailureWhenPaused() {
-        if (!locked) {
-            locked = true;
-
-            globals.setProtocolPaused(true);
-
-            ( bool success, ) = address(this).call(msg.data);
-            assertTrue(!success || failed, "test should have failed when paused");
-
-            globals.setProtocolPaused(false);
-        }
-
-        _;
-
-        locked = false;
-    }
-
-    function setUp() external {
-        globals = new MapleGlobalsMock();
-
-        auctioneer          = new AuctioneerMock(address(globals), USDC);
-        benchmarkAuctioneer = new AuctioneerMock(address(globals), USDC);
-
-        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
-
-        benchmarkAuctioneer.__setValuesFor(WETH, 10_000, 0);  // 100% slippage with zero ratio to benchmark against atomic liquidation
-
-        benchmarkLiquidator = new Liquidator(address(this), WETH, USDC, address(benchmarkAuctioneer), fundsDestination2, address(globals));
-        liquidator          = new Liquidator(address(this), WETH, USDC, address(auctioneer),          fundsDestination1, address(globals));
-        sushiswapStrategy   = new SushiswapStrategy();
-        rebalancer          = new Rebalancer();
-
-        globals.setPriceOracle(WETH, WETH_ORACLE);
-        globals.setPriceOracle(USDC, USDC_ORACLE);
-    }
+contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
     function test_liquidator_sushiswapStrategy() assertFailureWhenPaused public {
-        erc20_mint(WETH, 3, address(liquidator),          2_000 ether);
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 2_000 ether);
-        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+        erc20_mint(address(weth), 3, address(liquidator),          2_000 ether);
+        erc20_mint(address(weth), 3, address(benchmarkLiquidator), 2_000 ether);
+        erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
         uint256 returnAmount = liquidator.getExpectedAmount(2_000 ether);
 
@@ -408,10 +454,10 @@ contract LiquidatorSushiswapTest is TestUtils {
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amount that is above slippage requirements
-        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
         // Function reverts if returnAmount is larger than maxReturnAmount
-        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, 1, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, 1, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
         /*************************/
         /*** First Liquidation ***/
@@ -420,7 +466,7 @@ contract LiquidatorSushiswapTest is TestUtils {
         uint256 returnAmount1 = liquidator.getExpectedAmount(950 ether);
         assertEq(returnAmount1, 3_136_420_517695);  // $1.59m
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        1050 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -432,12 +478,12 @@ contract LiquidatorSushiswapTest is TestUtils {
         /*** Second Liquidation ***/
         /**************************/
 
-        rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(sushiswapRouterV2, 950 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         uint256 returnAmount2 = liquidator.getExpectedAmount(950 ether);
         assertEq(returnAmount2, 3_136_420_517695);  // $825k
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, WETH,  address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, address(weth),  address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        100 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -449,12 +495,12 @@ contract LiquidatorSushiswapTest is TestUtils {
         /*** Third Liquidation ***/
         /**************************/
 
-        rebalancer.swap(SUSHISWAP_ROUTER_V2, 950 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(sushiswapRouterV2, 950 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         uint256 returnAmount3 = liquidator.getExpectedAmount(100 ether);
         assertEq(returnAmount3, 330_149_528178);  // $881k
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 100 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -466,14 +512,14 @@ contract LiquidatorSushiswapTest is TestUtils {
         /*** Benchmark Liquidation ***/
         /*****************************/
 
-        rebalancer.swap(SUSHISWAP_ROUTER_V2, 50 ether, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+        rebalancer.swap(sushiswapRouterV2, 50 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 2_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, type(uint256).max, 0, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 2_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
@@ -484,9 +530,9 @@ contract LiquidatorSushiswapTest is TestUtils {
     }
 
     function test_liquidator_sushiswapStrategy_largeLiquidation() public assertFailureWhenPaused {
-        erc20_mint(WETH, 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
-        erc20_mint(WETH, 3, address(benchmarkLiquidator), 10_000 ether);
-        erc20_mint(USDC, 9, address(rebalancer),          type(uint256).max);
+        erc20_mint(address(weth), 3, address(liquidator),          10_000 ether);  // ~$340m to liquidate
+        erc20_mint(address(weth), 3, address(benchmarkLiquidator), 10_000 ether);
+        erc20_mint(address(usdc), 9, address(rebalancer),          type(uint256).max);
 
         assertEq(weth.balanceOf(address(liquidator)),        10_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
@@ -501,9 +547,9 @@ contract LiquidatorSushiswapTest is TestUtils {
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
 
-            sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+            sushiswapStrategy.flashBorrowLiquidation(address(liquidator), swapAmount, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
-            rebalancer.swap(SUSHISWAP_ROUTER_V2, swapAmount, type(uint256).max, USDC, address(0), WETH);  // Perform fake arbitrage transaction to get price back up
+            rebalancer.swap(sushiswapRouterV2, swapAmount, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
         }
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
@@ -521,7 +567,7 @@ contract LiquidatorSushiswapTest is TestUtils {
         assertEq(usdc.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)),   0);
 
-        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, WETH, address(0), USDC, address(benchmarkLiquidator));  // Send profits to benchmark liquidator
+        sushiswapStrategy.flashBorrowLiquidation(address(benchmarkLiquidator), 10_000 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), address(benchmarkLiquidator));  // Send profits to benchmark liquidator
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
@@ -533,76 +579,24 @@ contract LiquidatorSushiswapTest is TestUtils {
 
 }
 
-contract LiquidatorMultipleAMMTest is TestUtils {
-
-    address public constant SUSHISWAP_ROUTER_V2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
-    address public constant UNISWAP_ROUTER_V2   = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-    address public constant USDC                = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE         = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH                = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE         = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-
-    IERC20 internal constant usdc = IERC20(USDC);
-    IERC20 internal constant weth = IERC20(WETH);
-
-    address internal constant fundsDestination  = address(5858);  // Address that collects expected funds from swaps
-    address internal constant profitDestination = address(1122);  // Address that collects profits from swaps
-
-    AuctioneerMock    internal auctioneer;
-    Liquidator        internal liquidator;
-    MapleGlobalsMock  internal globals;
-    SushiswapStrategy internal sushiswapStrategy;
-    UniswapV2Strategy internal uniswapV2Strategy;
-
-    bool locked;  // Helper state variable to avoid infinite loops when using the modifier.
-
-    modifier assertFailureWhenPaused() {
-        if (!locked) {
-            locked = true;
-
-            globals.setProtocolPaused(true);
-
-            ( bool success, ) = address(this).call(msg.data);
-            assertTrue(!success || failed, "test should have failed when paused");
-
-            globals.setProtocolPaused(false);
-        }
-
-        _;
-
-        locked = false;
-    }
-
-    function setUp() external {
-        globals = new MapleGlobalsMock();
-
-        auctioneer        = new AuctioneerMock(address(globals), USDC);
-        liquidator        = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
-        sushiswapStrategy = new SushiswapStrategy();
-        uniswapV2Strategy = new UniswapV2Strategy();
-
-        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 1% slippage allowed from market price
-
-        globals.setPriceOracle(WETH, WETH_ORACLE);
-        globals.setPriceOracle(USDC, USDC_ORACLE);
-    }
+contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
 
     // TODO: Update this test suite once UniswapV3 is implemented
     function test_liquidator_multipleStrategies() public assertFailureWhenPaused {
-        erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
+        erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
         assertEq(weth.balanceOf(address(liquidator)),        1_400 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
 
         assertEq(usdc.balanceOf(address(liquidator)),        0);
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 0);
 
         // Try liquidating amounts that are above slippage requirements (determined with while loop)
-        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
-        try uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 484 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination) { fail(); } catch {}
+        try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
+        try uniswapStrategy.flashBorrowLiquidation(address(liquidator), 484 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
         /**********************************/
         /*** Multi-Strategy Liquidation ***/
@@ -611,82 +605,38 @@ contract LiquidatorMultipleAMMTest is TestUtils {
         uint256 returnAmount = liquidator.getExpectedAmount(1_400 ether);
         assertEq(returnAmount, 4_622_093_394499);  // $4.62m
 
-        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
-        uniswapV2Strategy.flashBorrowLiquidation(address(liquidator), 450 ether, type(uint256).max, 0, WETH, address(0), USDC, profitDestination);
+        sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 950 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
+        uniswapStrategy.flashBorrowLiquidation(address(liquidator), 450 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination);
 
         assertEq(weth.balanceOf(address(liquidator)),        0);
         assertEq(weth.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(weth.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(weth.balanceOf(address(uniswapStrategy)),   0);
 
         assertWithinDiff(usdc.balanceOf(address(liquidator)), returnAmount, 1);
 
         assertEq(usdc.balanceOf(address(sushiswapStrategy)), 0);
-        assertEq(usdc.balanceOf(address(uniswapV2Strategy)), 0);
+        assertEq(usdc.balanceOf(address(uniswapStrategy)),   0);
         assertEq(usdc.balanceOf(address(profitDestination)), 3_886_663971);
     }
 
 }
 
-contract LiquidatorOTCTest is TestUtils {
-
-    address public constant fundsDestination = address(5959);
-    address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE      = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH             = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE      = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-
-    IERC20 internal constant usdc = IERC20(USDC);
-    IERC20 internal constant weth = IERC20(WETH);
-
-    AuctioneerMock   internal auctioneer;
-    Liquidator       internal liquidator;
-    MapleGlobalsMock internal globals;
-
-    bool locked;  // Helper state variable to avoid infinite loops when using the modifier.
-
-    modifier assertFailureWhenPaused() {
-        if (!locked) {
-            locked = true;
-
-            globals.setProtocolPaused(true);
-
-            ( bool success, ) = address(this).call(msg.data);
-            assertTrue(!success , "test should have failed when paused");
-
-            globals.setProtocolPaused(false);
-        }
-
-        _;
-
-        locked = false;
-    }
-
-    function setUp() external {
-        globals = new MapleGlobalsMock();
-
-        auctioneer = new AuctioneerMock(address(globals), USDC);
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
-
-        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
-
-        globals.setPriceOracle(WETH, WETH_ORACLE);
-        globals.setPriceOracle(USDC, USDC_ORACLE);
-    }
+contract LiquidatorOTCTest is LiquidatorTestBase {
 
     function test_eoa_otc_liquidation() public assertFailureWhenPaused {
-        erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
+        erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
         uint256 returnAmount1 = liquidator.getExpectedAmount(1_400 ether);
 
         assertEq(returnAmount1, 4_622_093_394499);
 
-        erc20_mint(USDC, 9, address(this), returnAmount1);
+        erc20_mint(address(usdc), 9, address(this), returnAmount1);
 
         // Starting state
-        assertEq(weth.balanceOf(address(liquidator)),       1_400 ether);
-        assertEq(weth.balanceOf(address(this)),             0);
-        assertEq(usdc.balanceOf(address(liquidator)),       0);
-        assertEq(usdc.balanceOf(address(this)),             returnAmount1);
+        assertEq(weth.balanceOf(address(liquidator)), 1_400 ether);
+        assertEq(weth.balanceOf(address(this)),       0);
+        assertEq(usdc.balanceOf(address(liquidator)), 0);
+        assertEq(usdc.balanceOf(address(this)),       returnAmount1);
 
         usdc.approve(address(liquidator), returnAmount1 - 1);  // Approve for an amount less than the expected amount
 
@@ -707,48 +657,20 @@ contract LiquidatorOTCTest is TestUtils {
         liquidator.liquidatePortion(1_400 ether, type(uint256).max, arguments);  // Successful when called with correct balance and approval
 
         // Ending state
-        assertEq(weth.balanceOf(address(liquidator)),       0);
-        assertEq(weth.balanceOf(address(this)),             1_400 ether);
-        assertEq(usdc.balanceOf(address(liquidator)),       returnAmount1);
-        assertEq(usdc.balanceOf(address(this)),             0);
+        assertEq(weth.balanceOf(address(liquidator)), 0);
+        assertEq(weth.balanceOf(address(this)),       1_400 ether);
+        assertEq(usdc.balanceOf(address(liquidator)), returnAmount1);
+        assertEq(usdc.balanceOf(address(this)),       0);
     }
 
 }
 
-contract ReentrantLiquidatorTest is TestUtils {
-
-    address public constant fundsDestination = address(5959);
-    address public constant USDC             = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant USDC_ORACLE      = address(0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6);
-    address public constant WETH             = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant WETH_ORACLE      = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-
-    IERC20 internal constant usdc = IERC20(USDC);
-    IERC20 internal constant weth = IERC20(WETH);
-
-    AuctioneerMock      internal auctioneer;
-    Liquidator          internal liquidator;
-    MapleGlobalsMock    internal globals;
-    ReentrantLiquidator internal reentrantStrategy;
-
-    function setUp() external {
-        globals = new MapleGlobalsMock();
-
-        auctioneer = new AuctioneerMock(address(globals), USDC);
-        liquidator = new Liquidator(address(this), WETH, USDC, address(auctioneer), fundsDestination, address(globals));
-
-        auctioneer.__setValuesFor(WETH, 200, 2_000 * 10 ** 6);  // 2% slippage allowed from market price
-
-        reentrantStrategy = new ReentrantLiquidator();
-
-        globals.setPriceOracle(WETH, WETH_ORACLE);
-        globals.setPriceOracle(USDC, USDC_ORACLE);
-    }
+contract ReentrantLiquidatorTest is LiquidatorTestBase {
 
     function test_liquidator_reentrantStrategy() public {
-        erc20_mint(WETH, 3, address(liquidator), 1_400 ether);
+        erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
-        try reentrantStrategy.flashBorrowLiquidation(address(liquidator), 1_400 ether) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
+        try reentrantLiquidator.flashBorrowLiquidation(address(liquidator), 1_400 ether) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
     }
 
 }

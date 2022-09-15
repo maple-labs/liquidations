@@ -14,7 +14,9 @@ jobs:
           version: nightly
 
       - name: Pull library deps
-        run: forge update
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
 
       - name: Run forge tests
         env:

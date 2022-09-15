@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-interface ILiquidator {
+import { IMapleProxied } from "../../modules/maple-proxy-factory/contracts/interfaces/IMapleProxied.sol";
 
-    /**
-     * @dev   Auctioneer was set.
-     * @param auctioneer_ Address of the auctioneer.
-     */
-    event AuctioneerSet(address auctioneer_);
+import { ILiquidatorStorage } from "./ILiquidatorStorage.sol";
+
+interface ILiquidator is ILiquidatorStorage, IMapleProxied {
+
+    /**************/
+    /*** Events ***/
+    /**************/
 
     /**
      * @dev   Funds were withdrawn from the liquidator.
@@ -24,46 +26,9 @@ interface ILiquidator {
      */
     event PortionLiquidated(uint256 swapAmount_, uint256 returnedAmount_);
 
-    /**
-     * @dev Getter function that returns `collateralAsset`.
-     */
-    function collateralAsset() external view returns (address collateralAsset_);
-
-    /**
-     * @dev Getter function that returns `auctioneer`.
-     */
-    function auctioneer() external view returns (address auctioneer_);
-
-    /**
-     * @dev Getter function that returns `fundsAsset`.
-     */
-    function fundsAsset() external view returns (address fundsAsset_);
-
-    /**
-     * @dev Getter function that returns `globals`.
-     */
-    function globals() external view returns (address);
-
-    /**
-     * @dev Getter function that returns `owner`.
-     */
-    function owner() external view returns (address owner_);
-
-    /**
-     * @dev   Set the auctioneer contract address, which is used to pull the `getExpectedAmount`.
-     *        Can only be set by `owner`.
-     * @param auctioneer_ The auctioneer contract address.
-     */
-    function setAuctioneer(address auctioneer_) external;
-
-    /**
-     * @dev   Pulls a specified amount of ERC-20 tokens from the contract.
-     *        Can only be called by `owner`.
-     * @param token_       The ERC-20 token contract address.
-     * @param destination_ The destination of the transfer.
-     * @param amount_      The amount to transfer.
-     */
-    function pullFunds(address token_, address destination_, uint256 amount_) external;
+    /*****************/
+    /*** Functions ***/
+    /*****************/
 
     /**
      * @dev    Returns the expected amount to be returned from a flash loan given a certain amount of `collateralAsset`.
@@ -83,5 +48,14 @@ interface ILiquidator {
      * @param data_            ABI-encoded arguments to be used in the low-level call to perform step 2.
      */
     function liquidatePortion(uint256 swapAmount_, uint256 maxReturnAmount_, bytes calldata data_) external;
+
+    /**
+     * @dev   Pulls a specified amount of ERC-20 tokens from the contract.
+     *        Can only be called by `owner`.
+     * @param token_       The ERC-20 token contract address.
+     * @param destination_ The destination of the transfer.
+     * @param amount_      The amount to transfer.
+     */
+    function pullFunds(address token_, address destination_, uint256 amount_) external;
 
 }

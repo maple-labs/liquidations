@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-interface IAuctioneerLike {
+interface ILoanManagerLike {
 
     function getExpectedAmount(address collateralAsset_, uint256 swapAmount_) external view returns (uint256 expectedAmount_);
+
+    function globals() external view returns (address globals_);
+
+    function governor() external view returns (address governor_);
+
+    function poolDelegate() external view returns (address poolDelegate_);
 
 }
 
@@ -31,7 +37,15 @@ interface IMapleGlobalsLike {
 
     function getLatestPrice(address asset_) external view returns (uint256 price_);
 
+    function governor() external view returns (address governor_);
+
+    function isFactory(bytes32 factoryId_, address factory_) external view returns (bool isValid_);
+
+    function isValidScheduledCall(address caller_, address contract_, bytes32 functionId_, bytes calldata callData_) external view returns (bool isValid_);
+
     function protocolPaused() external view returns (bool protocolPaused_);
+
+    function unscheduleCall(address caller_, bytes32 functionId_, bytes calldata callData_) external;
 
 }
 

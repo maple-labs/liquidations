@@ -1,83 +1,76 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-import { Address, console, TestUtils } from "../modules/contract-test-utils/contracts/test.sol";
-
 import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 
-import { ILiquidator }                        from "./interfaces/ILiquidator.sol";
-import { IAuctioneerLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
+import { MapleProxiedInternals } from "../modules/maple-proxy-factory/contracts/MapleProxiedInternals.sol";
+import { IMapleProxyFactory    } from "../modules/maple-proxy-factory/contracts/interfaces/IMapleProxyFactory.sol";
 
-contract Liquidator is ILiquidator {
+import { ILiquidator } from "./interfaces/ILiquidator.sol";
 
-    uint256 private constant NOT_LOCKED = uint256(0);
+import { ILoanManagerLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
+
+import { LiquidatorStorage } from "./LiquidatorStorage.sol";
+
+contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
+
     uint256 private constant LOCKED     = uint256(1);
-
-    uint256 internal _locked;
-
-    address public override immutable collateralAsset;
-    address public override immutable fundsAsset;
-    address public override immutable globals;
-    address public override immutable owner;
-
-    address public override auctioneer;
+    uint256 private constant NOT_LOCKED = uint256(0);
 
     /*****************/
     /*** Modifiers ***/
     /*****************/
 
     modifier whenProtocolNotPaused() {
-        require(!IMapleGlobalsLike(globals).protocolPaused(), "LIQ:PROTOCOL_PAUSED");
+        require(!IMapleGlobalsLike(globals()).protocolPaused(), "LIQ:PROTOCOL_PAUSED");
+
         _;
     }
 
     modifier lock() {
-        require(_locked == NOT_LOCKED, "LIQ:LOCKED");
-        _locked = LOCKED;
+        require(locked == NOT_LOCKED, "LIQ:LOCKED");
+
+        locked = LOCKED;
+
         _;
-        _locked = NOT_LOCKED;
+
+        locked = NOT_LOCKED;
     }
 
-    /**
-     * @param owner_           The address of an account that will have administrative privileges on this contract.
-     * @param collateralAsset_ The address of the collateral asset being liquidated.
-     * @param fundsAsset_      The address of the funds asset.
-     * @param auctioneer_      The address of an Auctioneer.
-     * @param destination_     The address to send funds asset after liquidation.
-     * @param globals_         The address of a Maple Globals contract.
-     */
-    constructor(address owner_, address collateralAsset_, address fundsAsset_, address auctioneer_, address destination_, address globals_) {
-        require((owner = owner_)     != address(0), "LIQ:C:INVALID_OWNER");
-        require(destination_         != address(0), "LIQ:C:INVALID_DEST");
-        require((globals = globals_) != address(0), "LIQ:C:INVALID_GLOBALS");
+    /***************************/
+    /*** Migration Functions ***/
+    /***************************/
 
-        require(ERC20Helper.approve(collateralAsset_, destination_, type(uint256).max), "LIQ:C:INVALID_C_APPROVE");
-        require(ERC20Helper.approve(fundsAsset_,      destination_, type(uint256).max), "LIQ:C:INVALID_F_APPROVE");
-
-        // NOTE: Auctioneer of zero is valid, since it is starting the contract off in a paused state.
-        auctioneer      = auctioneer_;
-        collateralAsset = collateralAsset_;
-        fundsAsset      = fundsAsset_;
+    function migrate(address migrator_, bytes calldata arguments_) external override {
+        require(msg.sender == _factory(),        "LIQ:M:NOT_FACTORY");
+        require(_migrate(migrator_, arguments_), "LIQ:M:FAILED");
     }
 
-    function setAuctioneer(address auctioneer_) external override {
-        require(msg.sender == owner, "LIQ:SA:NOT_OWNER");
+    function setImplementation(address implementation_) external override {
+        require(msg.sender == _factory(), "LIQ:SI:NOT_FACTORY");
 
-        // NOTE: Auctioneer of zero is valid, since it puts the contract off in a paused state.
-        emit AuctioneerSet(auctioneer = auctioneer_);
+        _setImplementation(implementation_);
     }
 
-    function pullFunds(address token_, address destination_, uint256 amount_) external override {
-        require(msg.sender == owner, "LIQ:PF:NOT_OWNER");
+    function upgrade(uint256 version_, bytes calldata arguments_) external override {
+        address poolDelegate_ = poolDelegate();
 
-        emit FundsPulled(token_, destination_, amount_);
+        require(msg.sender == poolDelegate_ || msg.sender == governor(), "LIQ:U:NOT_AUTHORIZED");
 
-        require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
+        IMapleGlobalsLike mapleGlobals = IMapleGlobalsLike(globals());
+
+        if (msg.sender == poolDelegate_) {
+            require(mapleGlobals.isValidScheduledCall(msg.sender, address(this), "LIQ:UPGRADE", msg.data), "LIQ:U:INVALID_SCHED_CALL");
+
+            mapleGlobals.unscheduleCall(msg.sender, "LIQ:UPGRADE", msg.data);
+        }
+
+        IMapleProxyFactory(_factory()).upgradeInstance(version_, arguments_);
     }
 
-    function getExpectedAmount(uint256 swapAmount_) public view override returns (uint256 expectedAmount_) {
-        return IAuctioneerLike(auctioneer).getExpectedAmount(collateralAsset, swapAmount_);
-    }
+    /*****************************/
+    /*** Liquidation Functions ***/
+    /*****************************/
 
     function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
         // Transfer a requested amount of collateralAsset to the borrower.
@@ -94,6 +87,42 @@ contract Liquidator is ILiquidator {
 
         // Pull required amount of fundsAsset from the borrower, if this amount of funds cannot be recovered atomically, revert.
         require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), returnAmount), "LIQ:LP:TRANSFER_FROM");
+    }
+
+    function pullFunds(address token_, address destination_, uint256 amount_) external override {
+        require(msg.sender == loanManager, "LIQ:PF:NOT_LM");
+
+        emit FundsPulled(token_, destination_, amount_);
+
+        require(ERC20Helper.transfer(token_, destination_, amount_), "LIQ:PF:TRANSFER");
+    }
+
+    function getExpectedAmount(uint256 swapAmount_) public view override returns (uint256 expectedAmount_) {
+        return ILoanManagerLike(loanManager).getExpectedAmount(collateralAsset, swapAmount_);
+    }
+
+    /**********************/
+    /*** View Functions ***/
+    /**********************/
+
+    function factory() public view override returns (address factory_) {
+        factory_ = _factory();
+    }
+
+    function globals() public view returns (address globals_) {
+        globals_ = ILoanManagerLike(loanManager).globals();
+    }
+
+    function governor() public view returns (address governor_) {
+        governor_ = ILoanManagerLike(loanManager).governor();
+    }
+
+    function implementation() public view override returns (address implementation_) {
+        implementation_ = _implementation();
+    }
+
+    function poolDelegate() public view returns (address poolDelegate_) {
+        poolDelegate_ = ILoanManagerLike(loanManager).poolDelegate();
     }
 
 }
