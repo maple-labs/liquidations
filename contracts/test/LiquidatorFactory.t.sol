@@ -93,32 +93,6 @@ contract LiquidatorFactoryTests is TestUtils {
         liquidatorFactory.createInstance(data, "SALT");
     }
 
-    function test_createInstance_invalidCollateralAsset() external {
-        bytes memory data = abi.encode(address(loanManager), address(new FailApproveERC20()), address(fundsAsset));
-
-        vm.prank(address(loanManager));
-        vm.expectRevert("MPF:CI:FAILED");
-        liquidatorFactory.createInstance(data, "SALT");
-
-        data = abi.encode(address(loanManager), address(collateralAsset), address(fundsAsset));
-
-        vm.prank(address(loanManager));
-        liquidatorFactory.createInstance(data, "SALT");
-    }
-
-    function test_createInstance_invalidFundsAsset() external {
-        bytes memory data = abi.encode(address(loanManager), address(collateralAsset), address(new FailApproveERC20()));
-
-        vm.prank(address(loanManager));
-        vm.expectRevert("MPF:CI:FAILED");
-        liquidatorFactory.createInstance(data, "SALT");
-
-        data = abi.encode(address(loanManager), address(collateralAsset), address(fundsAsset));
-
-        vm.prank(address(loanManager));
-        liquidatorFactory.createInstance(data, "SALT");
-    }
-
     function test_createInstance_success() external {
         bytes memory data = abi.encode(address(loanManager), address(collateralAsset), address(fundsAsset));
 
@@ -133,9 +107,6 @@ contract LiquidatorFactoryTests is TestUtils {
         assertEq(liquidator.implementation(),  address(implementation));
         assertEq(liquidator.loanManager(),     address(loanManager));
         assertEq(liquidator.poolDelegate(),    address(poolDelegate));
-
-        assertEq(collateralAsset.allowance(address(liquidator), address(loanManager)), type(uint256).max);
-        assertEq(     fundsAsset.allowance(address(liquidator), address(loanManager)), type(uint256).max);
     }
 
 }

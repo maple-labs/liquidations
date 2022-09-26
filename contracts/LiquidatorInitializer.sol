@@ -24,9 +24,6 @@ contract LiquidatorInitializer is LiquidatorStorage {
     function _initialize(address loanManager_, address collateralAsset_, address fundsAsset_) internal {
         require(loanManager_ != address(0), "LIQI:I:ZERO_LM");
 
-        require(ERC20Helper.approve(collateralAsset_, loanManager_, type(uint256).max), "LIQI:I:INVALID_C_APPROVE");
-        require(ERC20Helper.approve(fundsAsset_,      loanManager_, type(uint256).max), "LIQI:I:INVALID_F_APPROVE");
-
         loanManager     = loanManager_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
