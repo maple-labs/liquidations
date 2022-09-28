@@ -17,9 +17,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     uint256 private constant LOCKED     = uint256(1);
     uint256 private constant NOT_LOCKED = uint256(0);
 
-    /*****************/
-    /*** Modifiers ***/
-    /*****************/
+    /******************************************************************************************************************************/
+    /*** Modifiers                                                                                                              ***/
+    /******************************************************************************************************************************/
 
     modifier whenProtocolNotPaused() {
         require(!IMapleGlobalsLike(globals()).protocolPaused(), "LIQ:PROTOCOL_PAUSED");
@@ -37,9 +37,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         locked = NOT_LOCKED;
     }
 
-    /***************************/
-    /*** Migration Functions ***/
-    /***************************/
+    /******************************************************************************************************************************/
+    /*** Migration Functions                                                                                                    ***/
+    /******************************************************************************************************************************/
 
     function migrate(address migrator_, bytes calldata arguments_) external override {
         require(msg.sender == _factory(),        "LIQ:M:NOT_FACTORY");
@@ -68,9 +68,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         IMapleProxyFactory(_factory()).upgradeInstance(version_, arguments_);
     }
 
-    /*****************************/
-    /*** Liquidation Functions ***/
-    /*****************************/
+    /******************************************************************************************************************************/
+    /*** Liquidation Functions                                                                                                  ***/
+    /******************************************************************************************************************************/
 
     function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
         // Transfer a requested amount of collateralAsset to the borrower.
@@ -109,9 +109,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         return ILoanManagerLike(loanManager).getExpectedAmount(collateralAsset, swapAmount_);
     }
 
-    /**********************/
-    /*** View Functions ***/
-    /**********************/
+    /******************************************************************************************************************************/
+    /*** View Functions                                                                                                         ***/
+    /******************************************************************************************************************************/
 
     function factory() public view override returns (address factory_) {
         factory_ = _factory();

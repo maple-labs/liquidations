@@ -73,9 +73,9 @@ contract LiquidatorTestBase is TestUtils {
         locked = false;
     }
 
-    /***********************/
-    /*** Setup Functions ***/
-    /***********************/
+    /******************************************************************************************************************************/
+    /*** Setup Functions                                                                                                        ***/
+    /******************************************************************************************************************************/
 
     function setUp() public virtual {
         _linkContracts();
@@ -322,9 +322,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
         // Function reverts if returnAmount is larger than maxReturnAmount
         try uniswapStrategy.flashBorrowLiquidation(address(liquidator), 485 ether, 1, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
-        /*************************/
-        /*** First Liquidation ***/
-        /*************************/
+        /******************************************************************************************************************************/
+        /*** First Liquidation                                                                                                      ***/
+        /******************************************************************************************************************************/
 
         uint256 returnAmount1 = liquidator.getExpectedAmount(483 ether);
         assertEq(returnAmount1, 1_594_622_221102);  // $1.59m
@@ -339,9 +339,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 517 ether);
 
-        /**************************/
-        /*** Second Liquidation ***/
-        /**************************/
+        /******************************************************************************************************************************/
+        /*** Second Liquidation                                                                                                     ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(uniswapRouterV2, 483 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -358,9 +358,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 267 ether);
 
-        /**************************/
-        /*** Third Liquidation ***/
-        /**************************/
+        /******************************************************************************************************************************/
+        /*** Third Liquidation                                                                                                      ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(uniswapRouterV2, 250 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -377,9 +377,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 0);
 
-        /*****************************/
-        /*** Benchmark Liquidation ***/
-        /*****************************/
+        /******************************************************************************************************************************/
+        /*** Benchmark Liquidation                                                                                                  ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(uniswapRouterV2, 267 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -421,9 +421,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 10_000 ether);
 
-        /******************************/
-        /*** Piecewise Liquidations ***/
-        /******************************/
+        /******************************************************************************************************************************/
+        /*** Piecewise Liquidations                                                                                                 ***/
+        /******************************************************************************************************************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
@@ -441,9 +441,9 @@ contract LiquidatorUniswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 0);
 
-        /*****************************/
-        /*** Benchmark Liquidation ***/
-        /*****************************/
+        /******************************************************************************************************************************/
+        /*** Benchmark Liquidation                                                                                                  ***/
+        /******************************************************************************************************************************/
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 10_000 ether);
         assertEq(weth.balanceOf(address(uniswapStrategy)),     0);
@@ -497,9 +497,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
         // Function reverts if returnAmount is larger than maxReturnAmount
         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 1000 ether, 1, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
-        /*************************/
-        /*** First Liquidation ***/
-        /*************************/
+        /******************************************************************************************************************************/
+        /*** First Liquidation                                                                                                      ***/
+        /******************************************************************************************************************************/
 
         uint256 returnAmount1 = liquidator.getExpectedAmount(950 ether);
         assertEq(returnAmount1, 3_136_420_517695);  // $1.59m
@@ -514,9 +514,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 1050 ether);
 
-        /**************************/
-        /*** Second Liquidation ***/
-        /**************************/
+        /******************************************************************************************************************************/
+        /*** Second Liquidation                                                                                                    ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(sushiswapRouterV2, 950 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -533,9 +533,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 100 ether);
 
-        /**************************/
-        /*** Third Liquidation ***/
-        /**************************/
+        /******************************************************************************************************************************/
+        /*** Third Liquidation                                                                                                      ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(sushiswapRouterV2, 950 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -552,9 +552,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 0);
 
-        /*****************************/
-        /*** Benchmark Liquidation ***/
-        /*****************************/
+        /******************************************************************************************************************************/
+        /*** Benchmark Liquidation                                                                                                  ***/
+        /******************************************************************************************************************************/
 
         rebalancer.swap(sushiswapRouterV2, 50 ether, type(uint256).max, address(usdc), address(0), address(weth));  // Perform fake arbitrage transaction to get price back up
 
@@ -596,9 +596,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 10_000 ether);
 
-        /******************************/
-        /*** Piecewise Liquidations ***/
-        /******************************/
+        /******************************************************************************************************************************/
+        /*** Piecewise Liquidations                                                                                                 ***/
+        /******************************************************************************************************************************/
 
         while(weth.balanceOf(address(liquidator)) > 0) {
             uint256 swapAmount = weth.balanceOf(address(liquidator)) > 450 ether ? 450 ether : weth.balanceOf(address(liquidator));  // Stay within 2% slippage
@@ -616,9 +616,9 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
         assertEq(liquidator.collateralRemaining(), 0);
 
-        /*****************************/
-        /*** Benchmark Liquidation ***/
-        /*****************************/
+        /******************************************************************************************************************************/
+        /*** Benchmark Liquidation                                                                                                  ***/
+        /******************************************************************************************************************************/
 
         assertEq(weth.balanceOf(address(benchmarkLiquidator)), 10_000 ether);
         assertEq(weth.balanceOf(address(sushiswapStrategy)),   0);
@@ -643,7 +643,6 @@ contract LiquidatorSushiswapTest is LiquidatorTestBase {
 
 contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
 
-    // TODO: Update this test suite once UniswapV3 is implemented
     function test_liquidator_multipleStrategies() public assertFailureWhenPaused {
         erc20_mint(address(weth), 3, address(liquidator), 1_400 ether);
 
@@ -665,9 +664,9 @@ contract LiquidatorMultipleAMMTest is LiquidatorTestBase {
         try sushiswapStrategy.flashBorrowLiquidation(address(liquidator), 995 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
         try uniswapStrategy.flashBorrowLiquidation(address(liquidator), 484 ether, type(uint256).max, 0, address(weth), address(0), address(usdc), profitDestination) { fail(); } catch {}
 
-        /**********************************/
-        /*** Multi-Strategy Liquidation ***/
-        /**********************************/
+        /******************************************************************************************************************************/
+        /*** Multi-Strategy Liquidation                                                                                             ***/
+        /******************************************************************************************************************************/
 
         uint256 returnAmount = liquidator.getExpectedAmount(1_400 ether);
         assertEq(returnAmount, 4_622_093_394499);  // $4.62m
