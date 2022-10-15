@@ -1,4 +1,4 @@
-name: Basic PR Tests
+name: Forge Tests (PR)
 
 on: [pull_request]
 

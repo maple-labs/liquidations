@@ -1,4 +1,4 @@
-name: SC Tests
+name: Forge Tests
 
 on:
   push:
