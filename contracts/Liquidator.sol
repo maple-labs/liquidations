@@ -4,7 +4,7 @@ pragma solidity 0.8.7;
 import { ERC20Helper } from "../modules/erc20-helper/src/ERC20Helper.sol";
 
 import { MapleProxiedInternals } from "../modules/maple-proxy-factory/contracts/MapleProxiedInternals.sol";
-import { IMapleProxyFactory    } from "../modules/maple-proxy-factory/contracts/interfaces/IMapleProxyFactory.sol";
+import { IMapleProxyFactory }    from "../modules/maple-proxy-factory/contracts/interfaces/IMapleProxyFactory.sol";
 
 import { ILiquidator } from "./interfaces/ILiquidator.sol";
 

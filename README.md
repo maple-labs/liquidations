@@ -8,6 +8,20 @@ This repository holds the `Liquidator` contract. Whenever a borrower is no longe
 
 For more information about the `Liquidator` contract in the context of the Maple V2 protocol, please refer to the Liquidations section of the protocol [wiki](https://github.com/maple-labs/maple-core-v2/wiki/Liquidations).
 
+## Dependencies/Inheritance
+
+Contracts in this repo inherit and import code from:
+- [`maple-labs/erc20`](https://github.com/maple-labs/erc20)
+- [`maple-labs/erc20-helper`](https://github.com/maple-labs/erc20-helper)
+- [`maple-labs/maple-proxy-factory`](https://github.com/maple-labs/maple-proxy-factory)
+
+Contracts inherit and import code in the following ways:
+- `Liquidator` uses `ERC20Helper` for token interactions.
+- `Liquidator` inherits `MapleProxiedInternals` for proxy logic.
+- `LiquidatorFactory` inherits `MapleProxyFactory` for proxy deployment and management.
+
+Versions of dependencies can be checked with `git submodule status`.
+
 ## Setup
 
 This project was built using [Foundry](https://book.getfoundry.sh/). Refer to installation instructions [here](https://github.com/foundry-rs/foundry#installation).

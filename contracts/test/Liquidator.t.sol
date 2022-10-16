@@ -2,11 +2,11 @@
 pragma solidity 0.8.7;
 
 import { Address, TestUtils } from "../../modules/contract-test-utils/contracts/test.sol";
-import { ERC20              } from "../../modules/erc20/contracts/ERC20.sol";
-import { MockERC20          } from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
+import { ERC20 }              from "../../modules/erc20/contracts/ERC20.sol";
+import { MockERC20 }          from "../../modules/erc20/contracts/test/mocks/MockERC20.sol";
 
-import { Liquidator            } from "../Liquidator.sol";
-import { LiquidatorFactory     } from "../LiquidatorFactory.sol";
+import { Liquidator }            from "../Liquidator.sol";
+import { LiquidatorFactory }     from "../LiquidatorFactory.sol";
 import { LiquidatorInitializer } from "../LiquidatorInitializer.sol";
 
 import { SushiswapStrategy } from "../strategies/SushiswapStrategy.sol";
