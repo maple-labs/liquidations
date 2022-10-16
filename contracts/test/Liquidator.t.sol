@@ -63,6 +63,7 @@ contract LiquidatorTestBase is TestUtils {
             globals.__setProtocolPaused(true);
 
             ( bool success, ) = address(this).call(msg.data);
+
             assertTrue(!success || failed, "test should have failed when paused");
 
             globals.__setProtocolPaused(false);

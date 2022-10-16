@@ -4,11 +4,8 @@ source: contracts
 packages:
   - path: contracts/Liquidator.sol
     contractName: Liquidator
-    customChecksum: 0x1fc3ad861f03ddd815354816c13079adde8d71f797ea9879c963e61fb81958f1
   - path: contracts/SushiswapStrategy.sol
     contractName: SushiswapStrategy
-    customChecksum: 0xa64a1fb2587e3eaf6126ace7612af658c8a93557a4073c1641ba8b1c3c320536
   - path: contracts/UniswapV2Strategy.sol
     contractName: UniswapV2Strategy
-    customChecksum: 0xf2cf2374f3f7b142b2cd2760bfa5d94ac05c18522ccb7cb3c4e9dae9bf5e70cc
 customDescription: Maple Liquidations Artifacts and ABIs

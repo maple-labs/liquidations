@@ -16,7 +16,7 @@ contract LiquidatorFactory is MapleProxyFactory {
         require(IMapleGlobalsLike(mapleGlobals).isFactory("LOAN_MANAGER", loanManagerFactory_), "LF:CI:INVALID_FACTORY");
         require(IMapleProxyFactory(loanManagerFactory_).isInstance(msg.sender),                 "LF:CI:INVALID_INSTANCE");
 
-        isInstance[instance_ = super.createInstance(arguments_, salt_)] = true;
+        instance_ = super.createInstance(arguments_, salt_);
     }
 
 }

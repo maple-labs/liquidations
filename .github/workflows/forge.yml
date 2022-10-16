@@ -2,26 +2,22 @@ name: Forge Tests
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  run-ci:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
-
-      - name: Pull library deps
+      - name: Install submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
-
-      - name: Run forge tests
+      - name: Run Forge tests
         env:
           ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
-        run: ./test.sh -r 50000
+        run: ./scripts/test.sh

@@ -12,6 +12,17 @@ import { ILoanManagerLike, IMapleGlobalsLike } from "./interfaces/Interfaces.sol
 
 import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 
+/*
+
+    ██╗     ██╗ ██████╗ ██╗   ██╗██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗
+    ██║     ██║██╔═══██╗██║   ██║██║██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
+    ██║     ██║██║   ██║██║   ██║██║██║  ██║███████║   ██║   ██║   ██║██████╔╝
+    ██║     ██║██║▄▄ ██║██║   ██║██║██║  ██║██╔══██║   ██║   ██║   ██║██╔══██╗
+    ███████╗██║╚██████╔╝╚██████╔╝██║██████╔╝██║  ██║   ██║   ╚██████╔╝██║  ██║
+    ╚══════╝╚═╝ ╚══▀▀═╝  ╚═════╝ ╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+
+*/
+
 contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
 
     uint256 private constant LOCKED     = uint256(1);

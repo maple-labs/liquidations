@@ -7,9 +7,9 @@ import { ILiquidatorStorage } from "./ILiquidatorStorage.sol";
 
 interface ILiquidator is ILiquidatorStorage, IMapleProxied {
 
-    /**************/
-    /*** Events ***/
-    /**************/
+    /******************************************************************************************************************************/
+    /*** Events                                                                                                                 ***/
+    /******************************************************************************************************************************/
 
     /**
      * @dev   Funds were withdrawn from the liquidator.
@@ -26,9 +26,9 @@ interface ILiquidator is ILiquidatorStorage, IMapleProxied {
      */
     event PortionLiquidated(uint256 swapAmount_, uint256 returnedAmount_);
 
-    /*****************/
-    /*** Functions ***/
-    /*****************/
+    /******************************************************************************************************************************/
+    /*** Functions                                                                                                              ***/
+    /******************************************************************************************************************************/
 
     /**
      * @dev    Returns the expected amount to be returned from a flash loan given a certain amount of `collateralAsset`.
@@ -62,6 +62,6 @@ interface ILiquidator is ILiquidatorStorage, IMapleProxied {
      * @dev   Sets the initial amount of collateral to be liquidated.
      * @param collateralAmount_ The amount of collateral to be liquidated.
      */
-    function setCollateralRemaining(uint256 collateralAmount_) external; 
+    function setCollateralRemaining(uint256 collateralAmount_) external;
 
 }
