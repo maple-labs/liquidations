@@ -1,6 +1,6 @@
 # Liquidations
 
-![Foundry CI](https://github.com/maple-labs/liquidations/actions/workflows/push-to-main.yml/badge.svg)[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+![Foundry CI](https://github.com/maple-labs/liquidations/actions/workflows/forge.yml/badge.svg)[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 ## Overview
 
