@@ -229,6 +229,15 @@ contract LiquidatorUpgradeTests is LiquidatorTestBase {
         vm.stopPrank();
     }
 
+    function test_upgrade_failWhenPaused() external {
+        MockGlobals(globals).__setIsValidScheduledCall(true);
+        globals.__setProtocolPaused(true);
+
+        vm.prank(governor);
+        vm.expectRevert("LIQ:PROTOCOL_PAUSED");
+        liquidator.upgrade(2, abi.encode(address(usdc)));
+    }
+
     function test_upgrade_notAuthorized() external {
         vm.expectRevert("LIQ:U:NOT_AUTHORIZED");
         liquidator.upgrade(2, "");

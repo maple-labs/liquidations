@@ -63,7 +63,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         _setImplementation(implementation_);
     }
 
-    function upgrade(uint256 version_, bytes calldata arguments_) external override {
+    function upgrade(uint256 version_, bytes calldata arguments_) external override whenProtocolNotPaused {
         address poolDelegate_ = poolDelegate();
 
         require(msg.sender == poolDelegate_ || msg.sender == governor(), "LIQ:U:NOT_AUTHORIZED");
