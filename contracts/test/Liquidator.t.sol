@@ -14,6 +14,7 @@ import { UniswapV2Strategy } from "../strategies/UniswapV2Strategy.sol";
 
 import {
     FailApproveERC20,
+    MaliciousERC20,
     MockFactory,
     MockGlobals,
     MockLoanManager,
@@ -759,6 +760,33 @@ contract ReentrantLiquidatorTest is LiquidatorTestBase {
         liquidator.setCollateralRemaining(1_400 ether);
 
         try reentrantLiquidator.flashBorrowLiquidation(address(liquidator), 1_400 ether) { assertTrue(false, "Liquidation with less than approved amount"); } catch { }
+    }
+
+}
+
+contract MaliciousAssetTest is LiquidatorTestBase {
+
+    MaliciousERC20 maliciousAsset;
+    MaliciousERC20 maliciousCollateralAsset;
+    Liquidator     maliciousLiquidator;
+
+    function setUp() public override {
+        super.setUp();
+
+        maliciousAsset           = new MaliciousERC20();
+        maliciousCollateralAsset = new MaliciousERC20();
+
+        // Create a malicious asset based liquidator
+        vm.prank(address(loanManager));
+        maliciousLiquidator = Liquidator(liquidatorFactory.createInstance(abi.encode(address(loanManager), address(maliciousCollateralAsset), address(maliciousAsset)), "loan-3"));
+    }
+
+    function test_liquidatePortion_maliciousAsset() public {
+        vm.expectRevert("LIQ:LP:INVALID_CALLER");
+        maliciousAsset.transferAndCall(address(maliciousLiquidator));
+
+        vm.expectRevert("LIQ:LP:INVALID_CALLER");
+        maliciousCollateralAsset.transferAndCall(address(maliciousLiquidator));
     }
 
 }

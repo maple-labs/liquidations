@@ -84,6 +84,8 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     /******************************************************************************************************************************/
 
     function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
+        require(msg.sender != collateralAsset && msg.sender != fundsAsset, "LIQ:LP:INVALID_CALLER");
+
         // Transfer a requested amount of collateralAsset to the borrower.
         require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
 

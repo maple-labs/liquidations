@@ -15,6 +15,14 @@ contract FailApproveERC20 {
 
 }
 
+contract MaliciousERC20 {
+
+    function transferAndCall(address to_) public {
+        ILiquidatorLike(to_).liquidatePortion(0, 0, bytes(""));
+    }
+
+}
+
 contract MockFactory {
 
     mapping(address => bool) public isInstance;
