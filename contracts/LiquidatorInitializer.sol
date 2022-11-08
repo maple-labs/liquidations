@@ -27,6 +27,7 @@ contract LiquidatorInitializer is LiquidatorStorage {
         loanManager     = loanManager_;
         collateralAsset = collateralAsset_;
         fundsAsset      = fundsAsset_;
+        locked          = 1;
     }
 
 }

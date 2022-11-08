@@ -25,9 +25,6 @@ import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 
 contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
 
-    uint256 private constant LOCKED     = uint256(1);
-    uint256 private constant NOT_LOCKED = uint256(0);
-
     /******************************************************************************************************************************/
     /*** Modifiers                                                                                                              ***/
     /******************************************************************************************************************************/
@@ -39,13 +36,13 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     }
 
     modifier lock() {
-        require(locked == NOT_LOCKED, "LIQ:LOCKED");
+        require(locked == 1, "LIQ:LOCKED");
 
-        locked = LOCKED;
+        locked = 2;
 
         _;
 
-        locked = NOT_LOCKED;
+        locked = 1;
     }
 
     /******************************************************************************************************************************/
