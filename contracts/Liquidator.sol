@@ -49,7 +49,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     /*** Migration Functions                                                                                                    ***/
     /******************************************************************************************************************************/
 
-    function migrate(address migrator_, bytes calldata arguments_) external override {
+    function migrate(address migrator_, bytes calldata arguments_) external override whenProtocolNotPaused {
         require(msg.sender == _factory(),        "LIQ:M:NOT_FACTORY");
         require(_migrate(migrator_, arguments_), "LIQ:M:FAILED");
     }
@@ -60,7 +60,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         _setImplementation(implementation_);
     }
 
-    function upgrade(uint256 version_, bytes calldata arguments_) external override whenProtocolNotPaused {
+    function upgrade(uint256 version_, bytes calldata arguments_) external override {
         address poolDelegate_ = poolDelegate();
 
         require(msg.sender == poolDelegate_ || msg.sender == governor(), "LIQ:U:NOT_AUTHORIZED");
@@ -128,7 +128,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     }
 
     function globals() public view returns (address globals_) {
-        globals_ = ILoanManagerLike(loanManager).globals();
+        globals_ = IMapleProxyFactory(_factory()).mapleGlobals();
     }
 
     function governor() public view returns (address governor_) {
