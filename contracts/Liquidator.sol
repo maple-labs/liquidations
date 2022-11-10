@@ -35,7 +35,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         _;
     }
 
-    modifier lock() {
+    modifier nonReentrant() {
         require(locked == 1, "LIQ:LOCKED");
 
         locked = 2;
@@ -80,8 +80,12 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     /*** Liquidation Functions                                                                                                  ***/
     /******************************************************************************************************************************/
 
-    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused lock {
+    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused nonReentrant {
         require(msg.sender != collateralAsset && msg.sender != fundsAsset, "LIQ:LP:INVALID_CALLER");
+
+        // Calculate the amount of fundsAsset required based on the amount of collateralAsset borrowed.
+        uint256 returnAmount_ = getExpectedAmount(collateralAmount_);
+        require(returnAmount_ <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
 
         // Transfer a requested amount of collateralAsset to the borrower.
         require(ERC20Helper.transfer(collateralAsset, msg.sender, collateralAmount_), "LIQ:LP:TRANSFER");
@@ -91,14 +95,10 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         // Perform a low-level call to msg.sender, allowing a swap strategy to be executed with the transferred collateral.
         msg.sender.call(data_);
 
-        // Calculate the amount of fundsAsset required based on the amount of collateralAsset borrowed.
-        uint256 returnAmount = getExpectedAmount(collateralAmount_);
-        require(returnAmount <= maxReturnAmount_, "LIQ:LP:MAX_RETURN_EXCEEDED");
-
-        emit PortionLiquidated(collateralAmount_, returnAmount);
+        emit PortionLiquidated(collateralAmount_, returnAmount_);
 
         // Pull required amount of fundsAsset from the borrower, if this amount of funds cannot be recovered atomically, revert.
-        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), returnAmount), "LIQ:LP:TRANSFER_FROM");
+        require(ERC20Helper.transferFrom(fundsAsset, msg.sender, address(this), returnAmount_), "LIQ:LP:TRANSFER_FROM");
     }
 
     function pullFunds(address token_, address destination_, uint256 amount_) external override {
