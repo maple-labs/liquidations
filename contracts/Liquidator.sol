@@ -49,7 +49,7 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
     /*** Migration Functions                                                                                                    ***/
     /******************************************************************************************************************************/
 
-    function migrate(address migrator_, bytes calldata arguments_) external override whenProtocolNotPaused {
+    function migrate(address migrator_, bytes calldata arguments_) external override {
         require(msg.sender == _factory(),        "LIQ:M:NOT_FACTORY");
         require(_migrate(migrator_, arguments_), "LIQ:M:FAILED");
     }

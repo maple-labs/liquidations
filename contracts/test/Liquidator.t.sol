@@ -165,15 +165,6 @@ contract LiquidatorMigrateTests is LiquidatorTestBase {
         migrator = address(new MockMigrator());
     }
 
-    function test_migrate_failWhenPaused() external {
-        globals.__setIsValidScheduledCall(true);
-        globals.__setProtocolPaused(true);
-
-        vm.prank(address(liquidatorFactory));
-        vm.expectRevert("LIQ:PROTOCOL_PAUSED");
-        liquidator.migrate(migrator, abi.encode(address(usdc)));
-    }
-
     function test_migrate_notFactory() external {
         vm.expectRevert("LIQ:M:NOT_FACTORY");
         liquidator.migrate(migrator, "");
