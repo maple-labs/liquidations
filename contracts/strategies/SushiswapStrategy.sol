@@ -67,7 +67,10 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
 
         uint256 collateral = IERC20Like(collateralAsset_).balanceOf(address(this));
 
-        require(collateral == uint256(0) || ERC20Helper.transfer(collateralAsset_, destination_, collateral), "SSS:FBL:COLLATERAL_TRANSFER");
+        require(
+            collateral == uint256(0) || ERC20Helper.transfer(collateralAsset_, destination_, collateral),
+            "SSS:FBL:COLLATERAL_TRANSFER"
+        );
     }
 
     function swap(
@@ -81,7 +84,8 @@ contract SushiswapStrategy is IUniswapV2StyleStrategy {
     {
         // If allowance for the router is insufficient, increase it.
         require(
-            (IERC20Like(collateralAsset_).allowance(address(this), ROUTER) >= collateralBorrowed_) || ERC20Helper.approve(collateralAsset_, ROUTER, type(uint256).max),
+            (IERC20Like(collateralAsset_).allowance(address(this), ROUTER) >= collateralBorrowed_) ||
+            ERC20Helper.approve(collateralAsset_, ROUTER, type(uint256).max),
             "SSS:S:APPROVE_FAILED"
         );
 

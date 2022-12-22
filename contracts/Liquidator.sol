@@ -25,9 +25,9 @@ import { LiquidatorStorage } from "./LiquidatorStorage.sol";
 
 contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
 
-    /******************************************************************************************************************************/
-    /*** Modifiers                                                                                                              ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Modifiers                                                                                                                      ***/
+    /**************************************************************************************************************************************/
 
     modifier whenProtocolNotPaused() {
         require(!IMapleGlobalsLike(globals()).protocolPaused(), "LIQ:PROTOCOL_PAUSED");
@@ -45,9 +45,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         locked = 1;
     }
 
-    /******************************************************************************************************************************/
-    /*** Migration Functions                                                                                                    ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Migration Functions                                                                                                            ***/
+    /**************************************************************************************************************************************/
 
     function migrate(address migrator_, bytes calldata arguments_) external override {
         require(msg.sender == _factory(),        "LIQ:M:NOT_FACTORY");
@@ -76,11 +76,13 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         IMapleProxyFactory(_factory()).upgradeInstance(version_, arguments_);
     }
 
-    /******************************************************************************************************************************/
-    /*** Liquidation Functions                                                                                                  ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** Liquidation Functions                                                                                                          ***/
+    /**************************************************************************************************************************************/
 
-    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_) external override whenProtocolNotPaused nonReentrant {
+    function liquidatePortion(uint256 collateralAmount_, uint256 maxReturnAmount_, bytes calldata data_)
+        external override whenProtocolNotPaused nonReentrant
+    {
         require(msg.sender != collateralAsset && msg.sender != fundsAsset, "LIQ:LP:INVALID_CALLER");
 
         // Calculate the amount of fundsAsset required based on the amount of collateralAsset borrowed.
@@ -119,9 +121,9 @@ contract Liquidator is ILiquidator, LiquidatorStorage, MapleProxiedInternals {
         return ILoanManagerLike(loanManager).getExpectedAmount(collateralAsset, swapAmount_);
     }
 
-    /******************************************************************************************************************************/
-    /*** View Functions                                                                                                         ***/
-    /******************************************************************************************************************************/
+    /**************************************************************************************************************************************/
+    /*** View Functions                                                                                                                 ***/
+    /**************************************************************************************************************************************/
 
     function factory() public view override returns (address factory_) {
         factory_ = _factory();

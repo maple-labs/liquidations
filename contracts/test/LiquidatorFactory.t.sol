@@ -8,23 +8,22 @@ import { Liquidator }            from "../Liquidator.sol";
 import { LiquidatorFactory }     from "../LiquidatorFactory.sol";
 import { LiquidatorInitializer } from "../LiquidatorInitializer.sol";
 
-import { FailApproveERC20, MockFactory, MockGlobals, MockLoanManager } from "./mocks/Mocks.sol";
+import { MockFactory, MockGlobals, MockLoanManager } from "./mocks/Mocks.sol";
 
 contract LiquidatorFactoryTests is TestUtils {
 
-    address governor;
-    address poolDelegate;
+    address internal governor;
+    address internal implementation;
+    address internal initializer;
+    address internal poolDelegate;
 
-    address implementation;
-    address initializer;
+    MockERC20       internal collateralAsset;
+    MockERC20       internal fundsAsset;
+    MockFactory     internal loanManagerFactory;
+    MockGlobals     internal globals;
+    MockLoanManager internal loanManager;
 
-    MockERC20       collateralAsset;
-    MockERC20       fundsAsset;
-    MockFactory     loanManagerFactory;
-    MockGlobals     globals;
-    MockLoanManager loanManager;
-
-    LiquidatorFactory liquidatorFactory;
+    LiquidatorFactory internal liquidatorFactory;
 
     function setUp() external {
         governor     = address(new Address());
@@ -33,11 +32,12 @@ contract LiquidatorFactoryTests is TestUtils {
         implementation = address(new Liquidator());
         initializer    = address(new LiquidatorInitializer());
 
-        globals            = new MockGlobals(address(governor));
         collateralAsset    = new MockERC20("Collateral Asset", "CA", 18);
         fundsAsset         = new MockERC20("Funds Asset",      "FA", 18);
+        globals            = new MockGlobals(address(governor));
         loanManagerFactory = new MockFactory();
-        loanManager        = new MockLoanManager(address(globals), address(fundsAsset), address(poolDelegate));
+
+        loanManager = new MockLoanManager(address(globals), address(fundsAsset), address(poolDelegate));
 
         vm.startPrank(governor);
         liquidatorFactory = new LiquidatorFactory(address(globals));

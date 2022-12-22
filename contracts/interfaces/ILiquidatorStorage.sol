@@ -11,7 +11,7 @@ interface ILiquidatorStorage {
 
     /**
      *  @dev    Returns the amount of collateral yet to be liquidated.
-     *  @return collateralRemaining_ Amunt of collateral remaining to be liquidated.
+     *  @return collateralRemaining_ Amount of collateral remaining to be liquidated.
      */
     function collateralRemaining() external view returns (uint256 collateralRemaining_);
 

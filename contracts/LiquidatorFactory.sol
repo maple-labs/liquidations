@@ -8,7 +8,7 @@ import { IMapleGlobalsLike } from "./interfaces/Interfaces.sol";
 
 contract LiquidatorFactory is MapleProxyFactory {
 
-    constructor(address globals_) MapleProxyFactory(globals_) { }
+    constructor(address globals_) MapleProxyFactory(globals_) {}
 
     function createInstance(bytes calldata arguments_, bytes32 salt_) override(MapleProxyFactory) public returns (address instance_) {
         address loanManagerFactory_ = IMapleProxied(msg.sender).factory();

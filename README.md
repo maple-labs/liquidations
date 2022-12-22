@@ -35,7 +35,16 @@ git clone git@github.com:maple-labs/liquidations.git
 cd liquidations
 forge install
 ```
-## Security
+
+## Running Tests
+
+- Set the enviroment variable `ETH_RPC_URL` to mainnet url
+- To run all tests: `forge test`
+- To run specific tests: `forge test --match <test_name>`
+
+`./scripts/test.sh` is used to enable Foundry profile usage with the `-p` flag. Profiles are used to specify the number of fuzz runs.
+
+## Audit Reports
 
 | Auditor | Report Link |
 |---|---|
@@ -47,11 +56,9 @@ forge install
 | Spearbit | [`2022-10-17 - Spearbit Report`](https://docs.google.com/viewer?url=https://github.com/maple-labs/maple-v2-audits/files/10223545/Maple.Finance.v2.-.Spearbit.pdf) |
 | Three Sigma | [`2022-10-24 - Three Sigma Report`](https://docs.google.com/viewer?url=https://github.com/maple-labs/maple-v2-audits/files/10223541/three-sigma_maple-finance_code-audit_v1.1.1.pdf) |
 
-## Running Tests
+## Bug Bounty
 
-- Set the enviroment variable `ETH_RPC_URL` to mainnet url
-- To run all tests: `make test`
-- To run specific unit tests: `./scripts/test.sh -t <test_name>`
+For all information related to the ongoing bug bounty for these contracts run by [Immunefi](https://immunefi.com/), please visit this [site](https://immunefi.com/bounty/maple/).
 
 ## About Maple
 
