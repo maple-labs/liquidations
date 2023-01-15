@@ -1,7 +1,9 @@
 # Liquidations
 
-[![Foundry][foundry-badge]][foundry]
 ![Foundry CI](https://github.com/maple-labs/liquidations/actions/workflows/forge.yml/badge.svg)
+[![GitBook - Documentation](https://img.shields.io/badge/GitBook-Documentation-orange?logo=gitbook&logoColor=white)](https://maplefinance.gitbook.io/maple/maple-for-developers/protocol-overview)
+[![Foundry][foundry-badge]][foundry]
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](https://github.com/maple-labs/liquidations/blob/main/LICENSE)
 
 [foundry]: https://getfoundry.sh/
 [foundry-badge]: https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg
@@ -9,8 +11,6 @@
 ## Overview
 
 This repository holds the `Liquidator` contract. Whenever a borrower is no longer able to meet their obligations and a loan goes into default, the liquidation process can be triggered by the pool delegate which issued the loan. The goal of this process is to recover as much liquidity as possible from any assets that are still recoverable and minimize the losses suffered by the pool.
-
-For more information about the `Liquidator` contract in the context of the Maple V2 protocol, please refer to the Liquidations section of the protocol [wiki](https://github.com/maple-labs/maple-core-v2/wiki/Liquidations).
 
 ## Dependencies/Inheritance
 
@@ -63,8 +63,6 @@ For all information related to the ongoing bug bounty for these contracts run by
 ## About Maple
 
 [Maple Finance](https://maple.finance/) is a decentralized corporate credit market. Maple provides capital to institutional borrowers through globally accessible fixed-income yield opportunities.
-
-For all technical documentation related to the Maple V2 protocol, please refer to the GitHub [wiki](https://github.com/maple-labs/maple-core-v2/wiki).
 
 ---
 
